@@ -89,9 +89,13 @@ class IndexerSettings:
         verify: ssl.SSLContext | bool = True
         if self.ca_cert:
             try:
-                verify = ssl.create_default_context(cafile=self.ca_cert)
+                context = ssl.create_default_context(cafile=self.ca_cert)
             except OSError as error:
                 raise CollectError("WAZUH_CA_CERT points to a file that cannot be read.") from error
+            # Wazuh's generated root CA has no keyUsage extension, which Python 3.13+ rejects
+            # under VERIFY_X509_STRICT. Trust in that CA and hostname checking stay on.
+            context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+            verify = context
         try:
             return httpx.Client(
                 base_url=self.url, auth=(self.user, self.password), verify=verify, timeout=30.0

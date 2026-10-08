@@ -299,3 +299,13 @@ def test_a_partial_count_is_an_error():
     indexer = Indexer(httpx.Client(transport=transport, base_url=BASE_URL))
     with pytest.raises(CollectError, match="partial answer"):
         indexer.count("wazuh-alerts-*", {"match_all": {}})
+
+
+def test_a_private_ca_keeps_trust_and_hostname_checks_but_not_x509_strict(monkeypatch):
+    made = ssl.create_default_context()
+    made.verify_flags |= ssl.VERIFY_X509_STRICT
+    monkeypatch.setattr("ecc.collect.ssl.create_default_context", lambda cafile: made)
+    IndexerSettings("https://127.0.0.1:9200", "admin", "not-a-real-password", "ca.pem").client()
+    assert not made.verify_flags & ssl.VERIFY_X509_STRICT
+    assert made.check_hostname is True
+    assert made.verify_mode == ssl.CERT_REQUIRED
