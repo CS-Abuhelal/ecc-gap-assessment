@@ -3,7 +3,7 @@ from pathlib import Path
 
 from ecc.load import load_dataset, load_snapshots
 from ecc.validate import listed, validate
-from tests.fixtures import EVIDENCE, MAPPING, RISKS, rewrite
+from tests.fixtures import CIS_CHECKS, EVIDENCE, MAPPING, RISKS, rewrite
 
 
 def problems(root: Path) -> list[str]:
@@ -77,3 +77,43 @@ def test_duplicate_snapshot_labels(root):
     source = (root / "snapshots" / "2026-10-baseline.json").read_text(encoding="utf-8")
     (root / "snapshots" / "2026-11-baseline.json").write_text(source, encoding="utf-8")
     assert "snapshots: labels used twice (1): baseline" in problems(root)
+
+
+def test_a_snapshot_missing_policy_checks(root):
+    path = root / "snapshots" / "2026-10-baseline.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["checks"] = data["checks"][:2]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    found = problems(root)
+    assert "snapshot 'baseline': holds 2 check results but says 4" in found
+    expected = "snapshot 'baseline': policy checks missing from the snapshot (2): 26139, 26140"
+    assert expected in found
+
+
+def test_a_snapshot_listing_a_check_twice(root):
+    path = root / "snapshots" / "2026-10-baseline.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["checks"][3] = {"id": 26000, "result": "failed"}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    found = problems(root)
+    assert "snapshot 'baseline': check ids listed twice (1): 26000" in found
+    assert "snapshot 'baseline': policy checks missing from the snapshot (1): 26140" in found
+
+
+def test_documents_must_stay_inside_the_repository(root):
+    entry = {
+        "control": "1-3-1",
+        "status": "Partially implemented",
+        "documents": ["../outside.md"],
+        "note": "Draft.",
+    }
+    rewrite(root, "evidence.yaml", {"entries": [entry, *EVIDENCE["entries"][1:]]})
+    (root.parent / "outside.md").write_text("x", encoding="utf-8")
+    expected = "evidence.yaml: document paths outside the repository (1): ../outside.md"
+    assert expected in problems(root)
+
+
+def test_duplicate_policy_check_ids(root):
+    checks = [*CIS_CHECKS["checks"], CIS_CHECKS["checks"][0]]
+    rewrite(root, "cis_checks.yaml", {**CIS_CHECKS, "checks": checks})
+    assert "cis_checks.yaml: check ids listed twice (1): 26000" in problems(root)

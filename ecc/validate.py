@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Sequence
+from pathlib import Path
 
 from ecc.assess import assess
 from ecc.load import Dataset
@@ -21,6 +22,14 @@ def listed(label: str, items: Sequence[str]) -> str:
 
 def duplicates(values: Iterable[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
+
+
+def inside(root: Path, document: str) -> bool:
+    """True when a relative document path stays inside the repository root."""
+    path = Path(document)
+    if path.is_absolute():
+        return False
+    return (root / path).resolve().is_relative_to(root.resolve())
 
 
 def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
@@ -62,6 +71,13 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
         if not (dataset.root / document).is_file()
     }
     report("evidence.yaml: documents that do not exist", sorted(missing))
+    outside = {
+        document
+        for entry in entries
+        for document in entry.documents
+        if not inside(dataset.root, document)
+    }
+    report("evidence.yaml: document paths outside the repository", sorted(outside))
 
     risks = dataset.risks.risks
     covered = {control for risk in risks for control in risk.controls}
@@ -70,6 +86,10 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
 
     report("snapshots: labels used twice", duplicates(s.label for s in snapshots))
     check_ids = {check.id for check in dataset.policy.checks}
+    report(
+        "cis_checks.yaml: check ids listed twice",
+        duplicates(str(check.id) for check in dataset.policy.checks),
+    )
     expected_policy = dataset.policy.policy.id
     for snapshot in snapshots:
         name = f"snapshot '{snapshot.label}'"
@@ -83,8 +103,17 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
                 f"{name}: expects {snapshot.policy.checks_total} checks, "
                 f"cis_checks.yaml has {len(check_ids)}"
             )
-        extra = sorted({check.id for check in snapshot.checks} - check_ids)
+        snapshot_ids = [check.id for check in snapshot.checks]
+        if len(snapshot_ids) != snapshot.policy.checks_total:
+            problems.append(
+                f"{name}: holds {len(snapshot_ids)} check results "
+                f"but says {snapshot.policy.checks_total}"
+            )
+        report(f"{name}: check ids listed twice", duplicates(str(i) for i in snapshot_ids))
+        extra = sorted(set(snapshot_ids) - check_ids)
         report(f"{name}: unknown check ids", [str(check_id) for check_id in extra])
+        absent = sorted(check_ids - set(snapshot_ids))
+        report(f"{name}: policy checks missing from the snapshot", [str(i) for i in absent])
         results = assess(dataset, snapshot).results
         report(
             f"{name}: controls with no rating (add them to evidence.yaml)",
