@@ -1,3 +1,21 @@
-# Statement of Applicability: controls that are Not applicable, each with a reason.
-# Filled in plan 2.
-not_applicable: []
+# Statement of Applicability for Rimal Byte (fictional): controls that do not apply, with reasons.
+# Every other ECC-2:2024 control applies and is rated.
+not_applicable:
+  - control: 1-7-1
+    reason: >-
+      Rimal Byte is a small private company and is not party to any nationally approved
+      international agreement or commitment that carries cybersecurity requirements.
+  - control: 2-15-1
+    reason: >-
+      Rimal Byte runs no external web applications. Its public website is a static brochure
+      page with no logins or forms, hosted by a third party and covered under 4-1 and 4-2.
+  - control: 2-15-2
+    reason: Rimal Byte runs no external web applications (see 2-15-1).
+  - control: 2-15-3
+    reason: Rimal Byte runs no external web applications (see 2-15-1).
+  - control: 2-15-4
+    reason: Rimal Byte runs no external web applications (see 2-15-1).
+  - control: 4-1-3
+    reason: >-
+      Rimal Byte does not outsource IT or cybersecurity operations or managed services; its
+      cloud service (Microsoft 365) is assessed under 4-2.
