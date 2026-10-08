@@ -82,6 +82,9 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 {% for status in statuses %}
   <div class="tile"><b>{{ counts[status] }}</b>{{ status }}</div>
 {% endfor %}
+{% if unrated %}
+  <div class="tile"><b>{{ unrated }}</b>No rating</div>
+{% endif %}
   <div class="tile"><b>{{ open_risks|length }}</b>Open risks</div>
 </section>
 
@@ -112,13 +115,13 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 <h2>Controls</h2>
 <div class="filters">
   <input id="q" type="search" placeholder="Filter by id or text" aria-label="Filter controls">
-  <select id="status" aria-label="Filter by status"><option value="">All statuses</option>{% for status in statuses %}<option>{{ status }}</option>{% endfor %}</select>
+  <select id="status" aria-label="Filter by status"><option value="">All statuses</option>{% for status in statuses %}<option>{{ status }}</option>{% endfor %}{% if unrated %}<option>No rating</option>{% endif %}</select>
 </div>
 <div class="table-wrap"><table id="controls">
 <thead><tr><th>ID</th><th>Control</th><th>Status</th><th>Evidence</th></tr></thead>
 <tbody>
 {% for r in results %}
-<tr data-status="{{ r.status or '' }}"><td>{{ r.control.id }}</td><td><b>{{ r.control.subdomain_title }}</b><br>{{ r.control.text }}</td><td>{{ badge(r.status) }}</td><td>{{ r.summary }}</td></tr>
+<tr data-status="{{ r.status or 'No rating' }}"><td>{{ r.control.id }}</td><td><b>{{ r.control.subdomain_title }}</b><br>{{ r.control.text }}</td><td>{{ badge(r.status) }}</td><td>{{ r.summary }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 
@@ -176,7 +179,8 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
   <li>Technical evidence: {{ check_count }} checks from the {{ policy_name }}, collected by Wazuh Security Configuration Assessment, plus open vulnerability counts and log retention.</li>
   <li>Checks rate a control Implemented when all usable checks pass, Partially implemented when some pass and Not implemented when none pass. Checks that are not applicable or were not scanned are left out.</li>
   <li>When a control has both technical and documentary evidence, it gets the weaker rating.</li>
-  <li>Compliance = (Implemented + &frac12; &times; Partially implemented) &divide; applicable controls.</li>
+  <li>A control's technical rating is the weakest of its checks rating and its facts (open vulnerabilities, log retention).</li>
+  <li>Compliance = (Implemented + &frac12; &times; Partially implemented) &divide; rated applicable controls (Not applicable and unrated controls are left out).</li>
   <li>Risk score = likelihood &times; impact (1&ndash;5 each): 1&ndash;4 Low, 5&ndash;9 Medium, 10&ndash;16 High, 20&ndash;25 Critical.</li>
 </ul>
 

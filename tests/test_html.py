@@ -1,5 +1,6 @@
 import dataclasses
 import os
+import re
 
 import pytest
 
@@ -68,3 +69,57 @@ def test_the_pdf_is_printed(tmp_path, dataset, baseline):
     pdf = tmp_path / "report.pdf"
     write_pdf(page, pdf, BROWSER)
     assert pdf.read_bytes().startswith(b"%PDF")
+
+
+def stub_browser(tmp_path, exit_code: int) -> str:
+    """A fake browser that writes nothing and exits with exit_code."""
+    if os.name == "nt":
+        path = tmp_path / "browser.bat"
+        path.write_text(f"@exit /b {exit_code}\n", encoding="utf-8")
+    else:
+        path = tmp_path / "browser.sh"
+        path.write_text(f"#!/bin/sh\nexit {exit_code}\n", encoding="utf-8")
+        path.chmod(0o755)
+    return str(path)
+
+
+def test_an_old_pdf_never_counts_as_success(tmp_path):
+    page = tmp_path / "index.html"
+    page.write_text("<p>x</p>", encoding="utf-8")
+    pdf = tmp_path / "out.pdf"
+    pdf.write_bytes(b"%PDF old report")
+    with pytest.raises(PdfError, match="without writing"):
+        write_pdf(page, pdf, stub_browser(tmp_path, 0))
+    assert not pdf.exists()
+
+
+def test_a_failing_browser_reports_its_exit_code(tmp_path):
+    page = tmp_path / "index.html"
+    page.write_text("<p>x</p>", encoding="utf-8")
+    with pytest.raises(PdfError, match="exited with code 3"):
+        write_pdf(page, tmp_path / "out.pdf", stub_browser(tmp_path, 3))
+
+
+def test_the_heatmap_puts_likelihood_across_and_impact_down(dataset, baseline):
+    risk = dataset.risks.risks[2].model_copy(update={"likelihood": 4, "impact": 1})
+    changed = dataclasses.replace(
+        dataset, risks=RiskRegister(risks=(*dataset.risks.risks[:2], risk))
+    )
+    html = render_html(changed, assess(changed, baseline))
+    row = html.split("<tr><th>1</th>")[1].split("</tr>")[0]
+    assert re.findall(r"<td[^>]*>([^<]*)</td>", row) == ["", "", "", "1", ""]
+
+
+def test_unrated_controls_are_counted_and_filterable(dataset, baseline):
+    evidence = dataset.evidence.model_copy(update={"entries": dataset.evidence.entries[1:]})
+    changed = dataclasses.replace(dataset, evidence=evidence)
+    html = render_html(changed, assess(changed, baseline))
+    assert "<b>1</b>No rating</div>" in html
+    assert "<option>No rating</option>" in html
+    assert '<tr data-status="No rating"><td>1-3-1</td>' in html
+
+
+def test_the_method_matches_the_scoring(dataset, baseline):
+    html = render_html(dataset, assess(dataset, baseline))
+    assert "rated applicable controls" in html
+    assert "weakest of its checks rating and its facts" in html

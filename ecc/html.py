@@ -71,6 +71,7 @@ def report_context(
         "domains": domains,
         "statuses": list(Status),
         "counts": {s: sum(1 for r in after.results if r.status is s) for s in Status},
+        "unrated": sum(1 for r in after.results if r.status is None),
         "results": after.results,
         "changes": compare(before, after) if before is not None else (),
         "risks": rows,
@@ -107,6 +108,13 @@ def find_browser(env: Mapping[str, str]) -> str | None:
 
 
 def write_pdf(html_path: Path, pdf_path: Path, browser: str) -> None:
+    name = Path(browser).name
+    try:
+        pdf_path.unlink(missing_ok=True)
+    except OSError as error:
+        raise PdfError(
+            f"Cannot replace {pdf_path.name}. Close it if it is open, then retry."
+        ) from error
     command = [
         browser,
         "--headless=new",
@@ -117,7 +125,13 @@ def write_pdf(html_path: Path, pdf_path: Path, browser: str) -> None:
     ]
     try:
         subprocess.run(command, check=True, capture_output=True, timeout=120)
-    except (OSError, subprocess.SubprocessError) as error:
-        raise PdfError(f"Printing the PDF with {Path(browser).name} failed: {error}") from error
+    except subprocess.CalledProcessError as error:
+        lines = (error.stderr or b"").decode(errors="replace").strip().splitlines()[-3:]
+        detail = f" {' | '.join(lines)}" if lines else ""
+        raise PdfError(f"{name} exited with code {error.returncode}.{detail}") from error
+    except subprocess.TimeoutExpired as error:
+        raise PdfError(f"{name} took more than 120 seconds to print the PDF.") from error
+    except OSError as error:
+        raise PdfError(f"Could not start {name} ({error.strerror or error}).") from error
     if not pdf_path.is_file() or pdf_path.stat().st_size == 0:
         raise PdfError("The browser finished without writing the PDF.")
