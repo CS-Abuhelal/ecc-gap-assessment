@@ -50,11 +50,14 @@ All roles at Rimal Byte, for staff and contractors, and the cybersecurity superv
    update asks them to, and report a lost laptop, a suspicious email or any suspected incident to
    the Cybersecurity Lead at once. [1-4-1]
 10. The supervisory committee must consist of the General Manager (chair), the Cybersecurity Lead
-    and the IT Manager. The General Manager established it, and its members, duties and rules
-    must be those set out in this policy. [1-2-3]
+    and the IT Manager. The Cybersecurity Lead must always be a member. The General Manager
+    established it, and its members, duties and rules must be those set out in this policy.
+    [1-2-3]
 11. The committee must meet every quarter. It must review progress on the cybersecurity program,
     the risk register and the results of assessments, and monitor compliance with the policies.
-    It must not take a decision unless the General Manager is present. [1-2-3]
+    It must not take a decision unless the General Manager and at least one other member are
+    present. Decisions must be taken by majority, and the General Manager has the casting vote.
+    [1-2-3]
 12. The Cybersecurity Lead must keep minutes of every meeting, recording decisions, actions and
     their owners. [1-2-3]
 

@@ -37,7 +37,9 @@ Every company laptop and the Wazuh SIEM that collects its logs.
    cleared on a laptop, unless the Cybersecurity Lead approves it. [2.12.3.1]
 6. The Cybersecurity Lead must review the Wazuh alerts every working day and keep a dated record
    that the review was done. When the Cybersecurity Lead is absent, the IT Manager must review
-   the alerts instead. [2.12.3.4]
+   the alerts instead. If the IT Manager finds a real problem, they must tell the Cybersecurity
+   Lead at once, or the General Manager if the Cybersecurity Lead cannot be reached. On return,
+   the Cybersecurity Lead must check the IT Manager's review records. [2.12.3.4]
 7. An alert that shows a real threat must be treated as a security incident: the reviewer must
    record it, tell the Cybersecurity Lead at once, and the Cybersecurity Lead coordinates the
    response. [2.12.3.4]

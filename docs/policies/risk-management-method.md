@@ -61,8 +61,9 @@ the software projects Rimal Byte delivers.
 5. Each risk must be given one treatment: mitigate (reduce it with controls), accept (live with
    it), transfer (move it to another party, for example through a contract or insurance) or avoid
    (stop the activity that causes it). [1-5-1, 1-5-2]
-6. Low and Medium risks must be accepted by the Cybersecurity Lead or the General Manager.
-   High and Critical risks must be accepted only by the General Manager. [1-5-1, 1-5-2]
+6. Risk acceptance must be approved only by the Cybersecurity Lead or the General Manager for a
+   Low or Medium risk, and only by the General Manager for a High or Critical risk. Accepting a
+   risk is a choice, never an obligation. [1-5-1, 1-5-2]
 7. The register must record, for each risk: its id, the linked ECC controls, the risk statement,
    likelihood, impact, treatment, owner and due date. The owner is a role, and the due date
    decides how soon the risk appears on the roadmap. A risk is closed when every linked ECC
