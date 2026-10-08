@@ -63,3 +63,38 @@ def test_closed_risks_leave_the_roadmap(tmp_path, dataset, after):
     }
     plan = [row[:2] for row in book["Roadmap"].iter_rows(min_row=2, values_only=True)]
     assert plan == [("60 days", "R-02"), ("Later", "R-03")]
+
+
+def test_status_counts_add_up_to_every_control(tmp_path, dataset, after):
+    rows = list(workbook(tmp_path, dataset, after)["Summary"].iter_rows(values_only=True))
+    start = next(i for i, row in enumerate(rows) if row[0] == "Status")
+    assert {row[0]: row[1] for row in rows[start + 1 : start + 7]} == {
+        "Implemented": 2,
+        "Partially implemented": 2,
+        "Not implemented": 0,
+        "Not applicable": 1,
+        "No rating": 0,
+        "Total": 5,
+    }
+
+
+def test_scores_show_one_decimal(tmp_path, dataset, baseline, after):
+    sheet = workbook(tmp_path, dataset, after, baseline)["Summary"]
+    assert sheet["C2"].number_format == "0.0"
+    assert sheet["D2"].number_format == "0.0"
+
+
+def test_the_summary_explains_how_to_read_it(tmp_path, dataset, after):
+    rows = list(workbook(tmp_path, dataset, after)["Summary"].iter_rows(values_only=True))
+    notes = {row[0]: row[1] for row in rows if row[0] in ("As of", "Scoring", "Roadmap")}
+    assert "20 October 2026" in notes["As of"]
+    assert "WS-01" in notes["As of"]
+    assert "0.5" in notes["Scoring"]
+    assert "snapshot date" in notes["Roadmap"]
+
+
+def test_big_sheets_have_filters(tmp_path, dataset, after):
+    book = workbook(tmp_path, dataset, after)
+    assert book["Controls"].auto_filter.ref == "A1:H6"
+    assert book["Technical evidence"].auto_filter.ref == "A1:E5"
+    assert book["Risk register"].auto_filter.ref == "A1:K4"

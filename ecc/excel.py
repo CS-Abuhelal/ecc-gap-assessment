@@ -41,6 +41,8 @@ def table(
     header: Sequence[str],
     rows: Iterable[Sequence[Any]],
     widths: Sequence[int],
+    *,
+    autofilter: bool = False,
 ) -> None:
     sheet.append(list(header))
     for cell in sheet[1]:
@@ -53,6 +55,8 @@ def table(
     for row in sheet.iter_rows(min_row=2):
         for cell in row:
             cell.alignment = Alignment(wrap_text=True, vertical="top")
+    if autofilter:
+        sheet.auto_filter.ref = sheet.dimensions
 
 
 def score(value: float | None) -> float | str:
@@ -85,6 +89,10 @@ def write_summary(
         header = ["Area", f"{before.snapshot.label} %", f"{after.snapshot.label} %", "Change"]
         rows = [[area, score(old), score(now), change(old, now)] for area, now, old in areas]
     table(sheet, header, rows, [48, 14, 14, 10])
+    for row in sheet.iter_rows(min_row=2, max_row=len(rows) + 1, min_col=2):
+        for cell in row:
+            if isinstance(cell.value, float):
+                cell.number_format = "0.0"
     sheet.append([])
     sheet.append(["Status", "Controls"])
     for column in (1, 2):
@@ -92,6 +100,31 @@ def write_summary(
     for status in Status:
         sheet.append([status.value, sum(1 for r in after.results if r.status is status)])
         sheet.cell(row=sheet.max_row, column=1).fill = fill(STATUS_COLOURS[status])
+    sheet.append(["No rating", sum(1 for r in after.results if r.status is None)])
+    sheet.append(["Total", len(after.results)])
+    sheet.cell(row=sheet.max_row, column=1).font = Font(bold=True)
+    snapshot = after.snapshot
+    sheet.append([])
+    sheet.append(
+        [
+            "As of",
+            f"{snapshot.taken_at:%d %B %Y}, snapshot '{snapshot.label}', "
+            f"workstation {snapshot.host}",
+        ]
+    )
+    sheet.append(
+        [
+            "Scoring",
+            "Compliance = (Implemented + 0.5 x Partially implemented) / applicable controls. "
+            "n/a = no applicable rated controls. Change is in percentage points.",
+        ]
+    )
+    sheet.append(
+        [
+            "Roadmap",
+            "Buckets count days from the snapshot date; overdue items fall in '30 days'.",
+        ]
+    )
 
 
 def write_controls(sheet: Worksheet, after: Assessment) -> None:
@@ -110,7 +143,7 @@ def write_controls(sheet: Worksheet, after: Assessment) -> None:
     ]
     header = ["ID", "Domain", "Subdomain", "Control", "Status", "Technical", "Documentary",
               "Evidence"]
-    table(sheet, header, rows, [9, 24, 30, 60, 22, 22, 22, 60])
+    table(sheet, header, rows, [9, 24, 30, 60, 22, 22, 22, 60], autofilter=True)
     for row_number, result in enumerate(after.results, start=2):
         if result.status is not None:
             sheet.cell(row=row_number, column=5).fill = fill(STATUS_COLOURS[result.status])
@@ -128,7 +161,13 @@ def write_checks(sheet: Worksheet, dataset: Dataset, after: Assessment) -> None:
         ]
         for check in dataset.policy.checks
     ]
-    table(sheet, ["Check ID", "CIS", "Title", "Result", "ECC controls"], rows, [10, 12, 80, 16, 18])
+    table(
+        sheet,
+        ["Check ID", "CIS", "Title", "Result", "ECC controls"],
+        rows,
+        [10, 12, 80, 16, 18],
+        autofilter=True,
+    )
     for row_number, row in enumerate(rows, start=2):
         sheet.cell(row=row_number, column=4).fill = fill(RESULT_COLOURS[row[3]])
 
@@ -156,6 +195,7 @@ def write_risks(register: Worksheet, plan: Worksheet, dataset: Dataset, after: A
             for row in rows
         ],
         [8, 14, 60, 11, 9, 8, 10, 11, 20, 12, 9],
+        autofilter=True,
     )
     table(
         plan,
