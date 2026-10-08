@@ -27,10 +27,9 @@ def test_the_fixture_is_valid(root):
     assert problems(root) == []
 
 
-def test_long_lists_are_shortened():
-    text = listed("things", [str(n) for n in range(20)])
-    assert text.startswith("things (20): 0, 1, 2")
-    assert text.endswith(", and 5 more")
+def test_lists_show_every_item():
+    items = [str(n) for n in range(20)]
+    assert listed("things", items) == "things (20): " + ", ".join(items)
 
 
 def test_unmapped_checks_and_unused_rules(root):

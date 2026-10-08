@@ -105,6 +105,7 @@ def write_summary(
     sheet.cell(row=sheet.max_row, column=1).font = Font(bold=True)
     snapshot = after.snapshot
     sheet.append([])
+    sheet.append(["Company", dataset.report.company])
     sheet.append(
         [
             "As of",

@@ -177,6 +177,13 @@ AFTER = {
     "vulnerabilities": {"critical": 0, "high": 1, "medium": 5, "low": 2},
 }
 
+REPORT = {
+    "company": "Example Co (fictional)",
+    "executive_summary": ["Example Co is a made-up company used by the tests."],
+    "key_findings": ["Password rules need work."],
+    "limitations": ["All data here is made up."],
+}
+
 DATA_FILES = {
     "catalog.yaml": CATALOG,
     "cis_checks.yaml": CIS_CHECKS,
@@ -184,6 +191,7 @@ DATA_FILES = {
     "evidence.yaml": EVIDENCE,
     "applicability.yaml": APPLICABILITY,
     "risks.yaml": RISKS,
+    "report.yaml": REPORT,
 }
 
 

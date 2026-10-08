@@ -108,3 +108,8 @@ def test_big_sheets_have_filters(tmp_path, dataset, after):
     assert book["Controls"].auto_filter.ref == "A1:H6"
     assert book["Technical evidence"].auto_filter.ref == "A1:E5"
     assert book["Risk register"].auto_filter.ref == "A1:K4"
+
+
+def test_the_summary_names_the_company(tmp_path, dataset, after):
+    rows = list(workbook(tmp_path, dataset, after)["Summary"].iter_rows(values_only=True))
+    assert ("Company", "Example Co (fictional)") in [row[:2] for row in rows]

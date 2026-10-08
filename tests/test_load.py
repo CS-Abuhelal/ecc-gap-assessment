@@ -113,3 +113,15 @@ def test_every_broken_snapshot_is_reported_together(root: Path):
         load_snapshots(root / "snapshots")
     assert "2026-10-baseline.json" in str(caught.value)
     assert "2026-10-after.json" in str(caught.value)
+
+
+def test_dataset_reads_the_report_text(dataset):
+    assert dataset.report.company == "Example Co (fictional)"
+    summary = ("Example Co is a made-up company used by the tests.",)
+    assert dataset.report.executive_summary == summary
+
+
+def test_the_report_text_needs_a_company_and_a_summary(root: Path):
+    rewrite(root, "report.yaml", {"company": "  ", "executive_summary": []})
+    with pytest.raises(DataError, match="report.yaml"):
+        load_dataset(root)

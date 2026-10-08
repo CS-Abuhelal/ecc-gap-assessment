@@ -86,6 +86,7 @@ def report_context(
         "status_class": STATUS_CLASS,
         "rating_class": RATING_CLASS,
         "rating": rating,
+        "report": dataset.report,
     }
 
 

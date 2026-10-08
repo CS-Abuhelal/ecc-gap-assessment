@@ -123,3 +123,13 @@ def test_the_method_matches_the_scoring(dataset, baseline):
     html = render_html(dataset, assess(dataset, baseline))
     assert "rated applicable controls" in html
     assert "weakest of its checks rating and its facts" in html
+
+
+def test_the_report_shows_the_company_summary_and_limitations(dataset, baseline):
+    report = dataset.report.model_copy(update={"key_findings": ("<i>Passwords</i> need work.",)})
+    changed = dataclasses.replace(dataset, report=report)
+    html = render_html(changed, assess(changed, baseline))
+    assert '<p class="company">Example Co (fictional)</p>' in html
+    assert "<p>Example Co is a made-up company used by the tests.</p>" in html
+    assert "<li>&lt;i&gt;Passwords&lt;/i&gt; need work.</li>" in html
+    assert "<li>All data here is made up.</li>" in html

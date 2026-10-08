@@ -165,6 +165,18 @@ class RiskRegister(Strict):
     risks: tuple[Risk, ...] = ()
 
 
+Paragraph = Annotated[str, Field(min_length=1, pattern=NOT_BLANK)]
+
+
+class ReportText(Strict):
+    """The report's words: who was assessed, the summary, key findings and limitations."""
+
+    company: Paragraph
+    executive_summary: tuple[Paragraph, ...] = Field(min_length=1)
+    key_findings: tuple[Paragraph, ...] = ()
+    limitations: tuple[Paragraph, ...] = ()
+
+
 class CheckResult(Strict):
     id: int
     result: CheckResultValue

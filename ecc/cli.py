@@ -117,10 +117,13 @@ def run_check(root: Path) -> int:
     if problems:
         report(problems)
         return 1
-    print(
+    message = (
         f"OK: {len(dataset.catalog)} controls, {len(dataset.policy.checks)} checks, "
         f"{len(snapshots)} snapshot(s)."
     )
+    if not snapshots:
+        message += " Control ratings and risks are checked once a snapshot exists."
+    print(message)
     return 0
 
 

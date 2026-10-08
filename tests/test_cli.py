@@ -145,3 +145,12 @@ def test_a_snapshots_folder_that_is_a_file_is_a_clear_error(root, capsys, monkey
     err = capsys.readouterr().err
     assert "Error: cannot write snapshots" in err
     assert "already exists. Choose another --label" not in err
+
+
+def test_check_without_snapshots_says_what_it_skipped(root, capsys):
+    for path in (root / "snapshots").glob("*.json"):
+        path.unlink()
+    assert run("check", "--root", str(root)) == 0
+    out = capsys.readouterr().out
+    assert "0 snapshot(s)." in out
+    assert "checked once a snapshot exists" in out

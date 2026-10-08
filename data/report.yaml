@@ -1,0 +1,43 @@
+# The report's words. Figures describe the baseline snapshot of 8 October 2026; update them when
+# a new snapshot is reported.
+company: Rimal Byte (fictional)
+executive_summary:
+  - >-
+    Rimal Byte (fictional) is a 30-person IT services company in Jeddah that is aligning with the
+    National Cybersecurity Authority's Essential Cybersecurity Controls (ECC-2:2024) to compete for
+    government contracts. This baseline assessment rates all 108 ECC controls. 102 apply, and the
+    company meets 26.0% of them, counting Partially implemented controls as half.
+  - >-
+    Governance has a starting point: six policies, a Cybersecurity Lead role and a supervisory
+    committee were approved in October 2026. Most of what those policies require is still being
+    rolled out, and there is no cybersecurity strategy, awareness program, incident response plan
+    or business continuity plan yet.
+  - >-
+    The largest gap is technical. Only 122 of the 473 applicable CIS benchmark checks pass on the
+    representative workstation (WS-01), and every technically measured control is a gap. The 26
+    risks in the register are led by insecure software delivery, phishing without awareness
+    training and weak workstation hardening. The roadmap starts with email authentication and the
+    five open high-severity vulnerabilities.
+key_findings:
+  - >-
+    Six policies are approved, but there is no cybersecurity strategy and the only cybersecurity
+    role is part-time (1-1, 1-2).
+  - >-
+    Only 122 of 473 applicable CIS checks pass on WS-01. Encryption scores 0 of 47 because Windows
+    11 Home has no full BitLocker (2-3, 2-8).
+  - Security logs go back about 10 days; ECC asks for 12 months (2.12.3.5).
+  - No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3).
+  - >-
+    There is no awareness program, incident response plan, penetration testing or business
+    continuity plan (1-10, 2-11, 2-13, 3-1).
+limitations:
+  - >-
+    Rimal Byte is fictional. Its profile, policies and governance ratings were written for this
+    assessment and have not been independently audited.
+  - >-
+    Technical evidence comes from one Windows 11 Home workstation (WS-01) that stands in for the
+    company's laptops.
+  - >-
+    The CIS benchmark is written for Windows 11 Enterprise; some of its settings cannot be applied
+    on the Home edition.
+  - Results describe one point in time, the baseline snapshot of 8 October 2026.

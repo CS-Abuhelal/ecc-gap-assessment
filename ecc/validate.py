@@ -11,13 +11,9 @@ from ecc.load import Dataset
 from ecc.mapping import duplicate_rules, unmapped_checks, unused_rules
 from ecc.models import Snapshot
 
-SHOWN = 15
-
 
 def listed(label: str, items: Sequence[str]) -> str:
-    shown = ", ".join(items[:SHOWN])
-    more = len(items) - SHOWN
-    return f"{label} ({len(items)}): {shown}" + (f", and {more} more" if more > 0 else "")
+    return f"{label} ({len(items)}): {', '.join(items)}"
 
 
 def duplicates(values: Iterable[str]) -> list[str]:

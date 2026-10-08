@@ -17,6 +17,7 @@ from ecc.models import (
     Control,
     Evidence,
     Mapping,
+    ReportText,
     RiskRegister,
     Snapshot,
 )
@@ -37,6 +38,7 @@ class Dataset:
     evidence: Evidence
     applicability: Applicability
     risks: RiskRegister
+    report: ReportText
 
 
 def read_text(path: Path) -> str:
@@ -78,7 +80,7 @@ def load_catalog(path: Path) -> tuple[Control, ...]:
 
 
 def load_dataset(root: Path) -> Dataset:
-    """Read all six data files; if any are broken, report every one of them together."""
+    """Read all seven data files; if any are broken, report every one of them together."""
     data = root / "data"
     readers: dict[str, Callable[[], Any]] = {
         "catalog": lambda: load_catalog(data / "catalog.yaml"),
@@ -87,6 +89,7 @@ def load_dataset(root: Path) -> Dataset:
         "evidence": lambda: load_model(Evidence, data / "evidence.yaml"),
         "applicability": lambda: load_model(Applicability, data / "applicability.yaml"),
         "risks": lambda: load_model(RiskRegister, data / "risks.yaml"),
+        "report": lambda: load_model(ReportText, data / "report.yaml"),
     }
     loaded: dict[str, Any] = {}
     errors: list[str] = []

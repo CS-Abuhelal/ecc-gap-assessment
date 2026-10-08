@@ -28,6 +28,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; }
 h1 { font-size: 28px; margin: 0 0 4px; }
 h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
 h3 { font-size: 16px; margin: 16px 0 6px; }
+.company { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
 .meta, .note { color: var(--muted); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px; margin: 24px 0; }
@@ -73,6 +74,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 <main>
 <header>
   <h1>NCA ECC-2:2024 Gap Assessment</h1>
+  <p class="company">{{ report.company }}</p>
   <p class="meta">Workstation {{ snapshot.host }} &middot; snapshot &ldquo;{{ snapshot.label }}&rdquo; taken {{ snapshot.taken_at.strftime("%d %B %Y") }}{% if before_snapshot %} &middot; compared with &ldquo;{{ before_snapshot.label }}&rdquo; ({{ before_snapshot.taken_at.strftime("%d %B %Y") }}){% endif %}</p>
   <p class="downloads"><a href="ecc-gap-assessment.xlsx">Download the workbook (.xlsx)</a><a href="ecc-gap-assessment.pdf">Download the report (PDF)</a></p>
 </header>
@@ -87,6 +89,19 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 {% endif %}
   <div class="tile"><b>{{ open_risks|length }}</b>Open risks</div>
 </section>
+
+<h2>Executive summary</h2>
+{% for paragraph in report.executive_summary %}
+<p>{{ paragraph }}</p>
+{% endfor %}
+{% if report.key_findings %}
+<h3>Key findings</h3>
+<ul>
+{% for finding in report.key_findings %}
+<li>{{ finding }}</li>
+{% endfor %}
+</ul>
+{% endif %}
 
 <h2>Results by domain</h2>
 <div class="table-wrap"><table>
@@ -163,6 +178,14 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 
 <h2>Scope and applicability</h2>
 <p>The assessment covers one Windows 11 workstation ({{ snapshot.host }}) and the Wazuh SIEM that monitors it. Technical results are measured by Wazuh; governance ratings are judged against the company's own documents.</p>
+{% if report.limitations %}
+<h3>Limitations</h3>
+<ul>
+{% for item in report.limitations %}
+<li>{{ item }}</li>
+{% endfor %}
+</ul>
+{% endif %}
 {% if not_applicable %}
 <div class="table-wrap"><table>
 <thead><tr><th>ID</th><th>Subdomain</th><th>Why it does not apply</th></tr></thead>
