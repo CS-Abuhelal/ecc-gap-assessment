@@ -30,6 +30,23 @@ ACTIVE_WINDOW = timedelta(hours=24)
 RESULTS = ("passed", "failed", "not applicable")
 SEVERITIES = ("critical", "high", "medium", "low")
 UNREACHABLE = "Could not reach the Wazuh indexer. Start Docker and Wazuh, then retry."
+TLS_FAILED = (
+    "The TLS check on the Wazuh indexer failed. Set WAZUH_CA_CERT to the indexer's root-ca.pem "
+    "and WAZUH_TLS_SERVER_NAME to wazuh.indexer, then retry."
+)
+UNEXPECTED = "The Wazuh indexer sent an unexpected answer. Nothing was saved."
+PARTIAL = (
+    "The Wazuh indexer gave a partial answer (timed out or failed shards). Wait until it has "
+    "finished starting, then retry. Nothing was saved."
+)
+CUT_OFF = (
+    "The indexer could not confirm it returned every matching document, so the results could "
+    "be cut off. Nothing was saved."
+)
+NO_VULNERABILITY_DATA = (
+    "The Wazuh indexer has no vulnerability data. Turn on Vulnerability Detection and wait for "
+    "its first scan, then retry."
+)
 
 
 class CollectError(Exception):
@@ -72,6 +89,18 @@ class IndexerSettings:
         )
 
 
+def tls_failure(error: BaseException) -> bool:
+    """True when an SSL error sits anywhere in the exception's cause chain."""
+    current: BaseException | None = error
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        if isinstance(current, ssl.SSLError):
+            return True
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return False
+
+
 class Indexer:
     """A thin wrapper over the indexer's search and count APIs."""
 
@@ -83,7 +112,6 @@ class Indexer:
         try:
             response = self._client.post(path, json=body, extensions=self._extensions)
             response.raise_for_status()
-            return response.json()
         except httpx.HTTPStatusError as error:
             code = error.response.status_code
             hint = ""
@@ -91,8 +119,15 @@ class Indexer:
                 hint = " Check WAZUH_INDEXER_USER and WAZUH_INDEXER_PASSWORD."
             message = f"The Wazuh indexer answered HTTP {code} for {path}.{hint}"
             raise CollectError(message) from error
-        except (httpx.HTTPError, ValueError) as error:
-            raise CollectError(UNREACHABLE) from error
+        except httpx.HTTPError as error:
+            raise CollectError(TLS_FAILED if tls_failure(error) else UNREACHABLE) from error
+        try:
+            answer = response.json()
+        except ValueError as error:
+            raise CollectError(UNEXPECTED) from error
+        if not isinstance(answer, dict):
+            raise CollectError(UNEXPECTED)
+        return answer
 
     def search(self, index: str, body: dict[str, Any]) -> dict[str, Any]:
         return self._post(f"/{index}/_search", body)
@@ -102,26 +137,43 @@ class Indexer:
         try:
             return int(answer["count"])
         except (KeyError, TypeError, ValueError) as error:
-            raise CollectError("The Wazuh indexer sent an unexpected count answer.") from error
+            raise CollectError(UNEXPECTED) from error
+
+
+def nested(value: Any, *keys: str) -> Any:
+    """value[k1][k2]..., or None as soon as a level is missing or not a mapping."""
+    for key in keys:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
+
+
+def reject_partial(answer: dict[str, Any]) -> None:
+    shards = answer.get("_shards")
+    failed = shards.get("failed", 0) if isinstance(shards, dict) else 0
+    if answer.get("timed_out") or failed:
+        raise CollectError(PARTIAL)
 
 
 def hits_of(answer: dict[str, Any], *, complete: bool = True) -> list[dict[str, Any]]:
-    """The documents in a search answer. With complete=True, a cut-off answer is an error."""
+    """The documents in a search answer. A partial answer is always an error; with
+    complete=True, so is an answer that cannot prove it holds every matching document."""
+    reject_partial(answer)
     try:
         hits = answer["hits"]
         docs = [hit["_source"] for hit in hits["hits"]]
-    except (KeyError, TypeError) as error:
-        raise CollectError("The Wazuh indexer sent an unexpected search answer.") from error
-    total = hits.get("total")
-    if isinstance(total, dict):
-        cut = total.get("relation") == "gte" or int(total.get("value", 0)) > len(docs)
-    else:
-        cut = isinstance(total, int) and total > len(docs)
-    if complete and cut:
-        raise CollectError(
-            f"More than {MAX_DOCS} matching documents, so the results would be cut off. "
-            "Nothing was saved."
-        )
+        total = hits.get("total")
+        if isinstance(total, dict):
+            known = total.get("relation") == "eq"
+            matched = int(total.get("value", 0))
+        else:
+            known = isinstance(total, int)
+            matched = total if known else 0
+    except (KeyError, TypeError, ValueError) as error:
+        raise CollectError(UNEXPECTED) from error
+    if complete and (not known or matched > len(docs)):
+        raise CollectError(CUT_OFF)
     return docs
 
 
@@ -141,7 +193,8 @@ def find_agent(indexer: Indexer, requested: str | None) -> str:
         "aggs": {"agents": {"terms": {"field": "agent.name", "size": 100}}},
     }
     answer = indexer.search(ALERTS_INDEX, body)
-    buckets = answer.get("aggregations", {}).get("agents", {}).get("buckets", [])
+    reject_partial(answer)
+    buckets = nested(answer, "aggregations", "agents", "buckets") or []
     names = sorted(str(bucket["key"]) for bucket in buckets)
     if requested is not None:
         if requested not in names:
@@ -181,8 +234,11 @@ def latest_results(indexer: Indexer, agent: str) -> dict[int, str]:
     }
     seen: set[int] = set()
     latest: dict[int, str] = {}
-    for doc in hits_of(indexer.search(ALERTS_INDEX, body)):
-        check = doc.get("data", {}).get("sca", {}).get("check", {})
+    docs = hits_of(indexer.search(ALERTS_INDEX, body))
+    for doc in docs:
+        check = nested(doc, "data", "sca", "check")
+        if not isinstance(check, dict):
+            continue
         try:
             check_id = int(check.get("id"))
         except (TypeError, ValueError):
@@ -193,6 +249,8 @@ def latest_results(indexer: Indexer, agent: str) -> dict[int, str]:
         result = check_result(check)
         if result is not None:
             latest[check_id] = result
+    if docs and not seen:
+        raise CollectError(UNEXPECTED)
     return latest
 
 
@@ -203,10 +261,13 @@ def vulnerability_counts(indexer: Indexer, agent: str) -> VulnerabilityCounts:
         "query": {"bool": {"filter": [agent_filter(agent)]}},
     }
     counts = dict.fromkeys(SEVERITIES, 0)
-    for doc in hits_of(indexer.search(VULNERABILITIES_INDEX, body)):
-        severity = str(doc.get("vulnerability", {}).get("severity") or "").strip().lower()
+    docs = hits_of(indexer.search(VULNERABILITIES_INDEX, body))
+    for doc in docs:
+        severity = str(nested(doc, "vulnerability", "severity") or "").strip().lower()
         if severity in counts:
             counts[severity] += 1
+    if not docs and indexer.count(VULNERABILITIES_INDEX, {"match_all": {}}) == 0:
+        raise CollectError(NO_VULNERABILITY_DATA)
     return VulnerabilityCounts(**counts)
 
 
@@ -228,9 +289,10 @@ def logging_facts(indexer: Indexer, agent: str, now: datetime) -> LoggingFacts:
     docs = hits_of(indexer.search(ALERTS_INDEX, body), complete=False)
     oldest: datetime | None = None
     if docs:
+        stamp = nested(docs[0], "timestamp")
         try:
-            oldest = parse_timestamp(str(docs[0]["timestamp"])).astimezone(UTC)
-        except (KeyError, ValueError) as error:
+            oldest = parse_timestamp(str(stamp)).astimezone(UTC)
+        except ValueError as error:
             raise CollectError("The oldest alert has an unreadable timestamp.") from error
     since = (now - ACTIVE_WINDOW).isoformat()
     recent = indexer.count(

@@ -1,4 +1,5 @@
 import json
+import ssl
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -12,6 +13,7 @@ from ecc.collect import (
     IndexerSettings,
     collect,
     find_agent,
+    hits_of,
     latest_results,
     logging_facts,
     parse_timestamp,
@@ -41,7 +43,10 @@ class FakeIndexer:
 
     agents: tuple[str, ...] = ("lab-agent",)
     sca_hits: list[dict[str, Any]] = field(default_factory=list)
-    vulnerabilities: list[dict[str, Any]] = field(default_factory=list)
+    vulnerabilities: list[dict[str, Any]] = field(
+        default_factory=lambda: [{"_source": {"vulnerability": {"severity": "Low"}}}]
+    )
+    vulnerability_total: int = 7
     oldest: str | None = "2026-09-28T10:00:00.000+0000"
     recent: int = 5
     relation: str = "eq"
@@ -52,7 +57,8 @@ class FakeIndexer:
         self.requests.append(body)
         path = request.url.path
         if path.endswith("/_count"):
-            return httpx.Response(200, json={"count": self.recent})
+            count = self.vulnerability_total if "vulnerabilities" in path else self.recent
+            return httpx.Response(200, json={"count": count})
         if "aggs" in body:
             buckets = [{"key": name, "doc_count": 3} for name in self.agents]
             aggregations = {"agents": {"buckets": buckets}}
@@ -204,3 +210,60 @@ def test_the_tls_server_name_is_sent_with_every_request():
 
 def test_snapshot_path_uses_the_month_and_label(baseline, tmp_path):
     assert snapshot_path(tmp_path, baseline) == tmp_path / "2026-10-baseline.json"
+
+
+def test_partial_answers_are_errors():
+    for answer in (
+        {**page([]), "timed_out": True},
+        {**page([]), "_shards": {"total": 2, "successful": 1, "failed": 1}},
+    ):
+        with pytest.raises(CollectError, match="partial answer"):
+            hits_of(answer)
+
+
+def test_an_answer_without_a_total_cannot_prove_it_is_complete():
+    with pytest.raises(CollectError, match="cut off"):
+        hits_of({"hits": {"hits": []}})
+    assert hits_of({"hits": {"hits": []}}, complete=False) == []
+
+
+def test_a_malformed_total_is_an_error():
+    with pytest.raises(CollectError, match="unexpected answer"):
+        hits_of({"hits": {"total": {"value": "many", "relation": "eq"}, "hits": []}})
+
+
+def test_hits_without_check_ids_are_an_error():
+    fake = FakeIndexer(sca_hits=[{"_source": {"data": "odd"}}, {"_source": {}}])
+    with pytest.raises(CollectError, match="unexpected answer"):
+        latest_results(fake.indexer(), "lab-agent")
+
+
+def test_a_non_json_answer_is_an_error():
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, text="<html>"))
+    indexer = Indexer(httpx.Client(transport=transport, base_url=BASE_URL))
+    with pytest.raises(CollectError, match="unexpected answer"):
+        find_agent(indexer, None)
+
+
+def test_a_tls_failure_names_the_tls_settings():
+    def fail(request: httpx.Request) -> httpx.Response:
+        try:
+            raise ssl.SSLCertVerificationError("certificate verify failed")
+        except ssl.SSLError as cause:
+            raise httpx.ConnectError("TLS handshake failed", request=request) from cause
+
+    indexer = Indexer(httpx.Client(transport=httpx.MockTransport(fail), base_url=BASE_URL))
+    with pytest.raises(CollectError, match="WAZUH_TLS_SERVER_NAME"):
+        find_agent(indexer, None)
+
+
+def test_no_vulnerability_data_at_all_is_an_error():
+    fake = FakeIndexer(vulnerabilities=[], vulnerability_total=0)
+    with pytest.raises(CollectError, match="no vulnerability data"):
+        vulnerability_counts(fake.indexer(), "lab-agent")
+
+
+def test_an_agent_without_vulnerabilities_counts_zero():
+    fake = FakeIndexer(vulnerabilities=[], vulnerability_total=5)
+    counts = vulnerability_counts(fake.indexer(), "lab-agent")
+    assert counts.model_dump() == {"critical": 0, "high": 0, "medium": 0, "low": 0}
