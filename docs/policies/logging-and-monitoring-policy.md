@@ -33,8 +33,8 @@ Every company laptop and the Wazuh SIEM that collects its logs.
    as remote sign-ins and remote desktop sessions). [2.12.3.1, 2.12.3.2]
 4. Logs must be collected centrally in the Wazuh SIEM. The IT Manager must install the Wazuh
    agent on each laptop and restore any laptop that stops sending logs. [2.12.3.3]
-5. Nobody may turn off event logging, stop the Wazuh agent or clear the logs on a laptop without
-   the Cybersecurity Lead's approval. [2.12.3.1]
+5. Event logging must stay turned on, the Wazuh agent must keep running and the logs must not be
+   cleared on a laptop, unless the Cybersecurity Lead approves it. [2.12.3.1]
 6. The Cybersecurity Lead must review the Wazuh alerts every working day and keep a dated record
    that the review was done. When the Cybersecurity Lead is absent, the IT Manager must review
    the alerts instead. [2.12.3.4]
@@ -45,8 +45,8 @@ Every company laptop and the Wazuh SIEM that collects its logs.
    make sure the Wazuh server has the storage to do this. [2.12.3.5]
 9. The clocks on laptops and on the Wazuh server must be synchronised with a trusted time
    source, so that events from different machines can be put in order. [2.12.3.3]
-10. Only the Cybersecurity Lead and the IT Manager may access the logs. Nobody may change or
-    delete a log record. [2-12-2]
+10. Access to the logs must be limited to the Cybersecurity Lead and the IT Manager. A log record
+    must not be changed or deleted. [2-12-2]
 11. Every quarter the Cybersecurity Lead must report to the supervisory committee how many
     laptops are sending logs, whether the daily reviews were done, and the oldest log still
     kept. [2-12-4]
@@ -76,4 +76,4 @@ must report it to the Cybersecurity Lead.
 ## Review
 
 The Cybersecurity Lead reviews this policy every year in October, or sooner if the law or the
-business changes significantly. Changes are recorded and approved by the General Manager.
+business changes significantly. Changes are recorded and approved by the General Manager. [2-12-4]

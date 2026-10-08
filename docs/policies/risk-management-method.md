@@ -7,7 +7,7 @@
 | Approved by | General Manager (Authorized Official) |
 | Approved on | 5 October 2026 |
 | Next review | October 2027 |
-| ECC-2:2024 controls | 1-5-1, 1-5-2, 1-5-3, 1-5-4 |
+| ECC-2:2024 controls | 1-5-1, 1-5-2, 1-5-3, 1-5-4, 1-8-1 |
 
 > Rimal Byte is a fictional company. This policy was written for a portfolio GRC project.
 
@@ -26,7 +26,8 @@ the software projects Rimal Byte delivers.
 
 1. The Cybersecurity Lead must keep a risk register and apply this method to every risk in it.
    [1-5-2]
-2. Each risk must be rated for likelihood over the next 12 months, using this scale. [1-5-1]
+2. Each risk must be rated for likelihood, using this scale of how often the event is
+   expected. [1-5-1]
 
    | Level | Name | Meaning |
    |---|---|---|
@@ -46,7 +47,7 @@ the software projects Rimal Byte delivers.
    | 4 | Major | Client data exposed or several clients affected; recovery takes weeks |
    | 5 | Severe | Serious breach of client data, loss of a government contract, or the company cannot operate |
 
-4. The score is likelihood x impact. The rating comes from the score. [1-5-1]
+4. The score must be likelihood x impact, and the rating must come from the score. [1-5-1]
 
    | Score | Rating |
    |---|---|
@@ -59,20 +60,20 @@ the software projects Rimal Byte delivers.
    every possible score.
 5. Each risk must be given one treatment: mitigate (reduce it with controls), accept (live with
    it), transfer (move it to another party, for example through a contract or insurance) or avoid
-   (stop the activity that causes it). [1-5-2]
-6. The Cybersecurity Lead may accept Low and Medium risks. Only the General Manager may accept
-   High and Critical risks. [1-5-2]
+   (stop the activity that causes it). [1-5-1, 1-5-2]
+6. Low and Medium risks must be accepted by the Cybersecurity Lead or the General Manager.
+   High and Critical risks must be accepted only by the General Manager. [1-5-1, 1-5-2]
 7. The register must record, for each risk: its id, the linked ECC controls, the risk statement,
    likelihood, impact, treatment, owner and due date. The owner is a role, and the due date
    decides how soon the risk appears on the roadmap. A risk is closed when every linked ECC
    control is implemented or not applicable. [1-5-2]
-8. A risk assessment is required: [1-5-3]
+8. A risk assessment must be carried out: [1-5-3]
    - at the early stage of a technology project [1.5.3.1]
    - before a major change to technology infrastructure [1.5.3.2]
    - when planning to use a third-party service [1.5.3.3]
    - before a new technology service or product is released [1.5.3.4]
 9. The Cybersecurity Lead must carry out a full assessment against ECC every year and report the
-   results to the supervisory committee. [1-5-2, 1-5-4]
+   results to the supervisory committee. [1-5-2, 1-8-1]
 
 ## Roles
 

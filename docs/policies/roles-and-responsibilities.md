@@ -37,7 +37,9 @@ All roles at Rimal Byte, for staff and contractors, and the cybersecurity superv
    must review progress against it every quarter. [1-2-2]
 6. The IT Manager must run laptops, accounts, Microsoft 365 and the office network in line with
    the policies, keep the Windows baseline applied, install updates, disable the accounts of
-   leavers on their last day, and review all accounts every quarter. [1-4-1]
+   leavers on their last day, and review all accounts every quarter. The IT Manager must also
+   act as the named delegate of the Cybersecurity Lead for the daily alert review and the weekly
+   vulnerability review whenever the Cybersecurity Lead is absent. [1-4-1]
 7. The HR Officer must tell the IT Manager when someone joins, changes role or leaves, give new
    staff the policies and keep their acknowledgments, and apply the HR disciplinary rules to
    breaches. [1-4-1]
@@ -47,19 +49,20 @@ All roles at Rimal Byte, for staff and contractors, and the cybersecurity superv
 9. All staff must follow the policies, use only their own account, restart their laptop when an
    update asks them to, and report a lost laptop, a suspicious email or any suspected incident to
    the Cybersecurity Lead at once. [1-4-1]
-10. The supervisory committee consists of the General Manager (chair), the Cybersecurity Lead and
-    the IT Manager. The General Manager established it, and its members, duties and rules are
-    those set out in this policy. [1-2-3]
+10. The supervisory committee must consist of the General Manager (chair), the Cybersecurity Lead
+    and the IT Manager. The General Manager established it, and its members, duties and rules
+    must be those set out in this policy. [1-2-3]
 11. The committee must meet every quarter. It must review progress on the cybersecurity program,
     the risk register and the results of assessments, and monitor compliance with the policies.
-    [1-2-3]
-12. The Cybersecurity Lead must keep minutes of every meeting, recording decisions and actions.
-    [1-2-3]
+    It must not take a decision unless the General Manager is present. [1-2-3]
+12. The Cybersecurity Lead must keep minutes of every meeting, recording decisions, actions and
+    their owners. [1-2-3]
 
 ## Roles
 
 R = Responsible (does the work), A = Accountable (answers for it; one per row), C = Consulted,
-I = Informed. A/R means one role is both. A dash means no part.
+I = Informed. A/R means one role is both. R (backup) means responsible only when the lead role
+is absent. A dash means no part.
 
 | Activity | General Manager | Cybersecurity Lead | IT Manager | HR Officer | Project Manager | Staff |
 |---|---|---|---|---|---|---|
@@ -67,7 +70,7 @@ I = Informed. A/R means one role is both. A dash means no part.
 | Maintaining the risk register | I | A/R | C | - | C | - |
 | Managing accounts | I | C | A/R | R | C | - |
 | Patching | I | C | A/R | - | I | R |
-| Reviewing alerts | I | A/R | C | - | - | - |
+| Reviewing alerts | I | A/R | R (backup) | - | - | - |
 | Onboarding and offboarding | I | C | R | A/R | C | I |
 | Responding to incidents | C | A/R | R | C | C | R |
 

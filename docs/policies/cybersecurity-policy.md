@@ -31,8 +31,8 @@ office network and client data.
    takes effect. [1-3-1]
 2. The Cybersecurity Lead must write down the company's cybersecurity policies and procedures,
    including the controls and requirements in them. [1-3-1]
-3. The detailed requirements are in five topic policies. They are part of this policy, and where
-   they differ from it the stricter requirement applies. [1-3-1]
+3. The detailed requirements are in five topic policies. They must be treated as part of this
+   policy, and where they differ from it the stricter requirement must apply. [1-3-1]
    - Roles and Responsibilities (`roles-and-responsibilities.md`)
    - Risk Management Method (`risk-management-method.md`)
    - Access Control Policy (`access-control-policy.md`)
@@ -41,9 +41,12 @@ office network and client data.
 4. The CIS Microsoft Windows 11 Enterprise Benchmark v3.0.0 (Level 1) is the security baseline
    for every company laptop. The IT Manager must apply it when a laptop is set up and keep it
    applied. [1-3-3, 2-3-1]
-5. Every deviation from the baseline must be recorded as an exception. A laptop that runs
-   Windows 11 Home cannot apply every setting, so until it moves to Windows 11 Pro or
-   Enterprise each setting it cannot meet is an exception. [1-3-3, 2-3-1]
+5. Every deviation from the baseline must be recorded as an exception. Laptops that run
+   Windows 11 Home cannot apply every setting. For these settings the General Manager must
+   approve one standing exception, as the Exceptions section requires. The IT Manager owns it,
+   and it is recorded in the risk register, where it is tracked with risks R-12 and R-17. It
+   must have an end date no more than 12 months away, by which the laptops must have moved to
+   Windows 11 Pro or Enterprise. [1-3-3, 2-3-1]
 6. The Cybersecurity Lead must publish the current version of every policy where all staff can
    read it, and must tell staff when one changes. [1-3-1]
 7. Staff and contractors must read and acknowledge these policies when they join and again after

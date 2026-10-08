@@ -7,7 +7,7 @@
 | Approved by | General Manager (Authorized Official) |
 | Approved on | 5 October 2026 |
 | Next review | October 2027 |
-| ECC-2:2024 controls | 2-2-1, 2-2-2, 2-2-3, 2-2-4 |
+| ECC-2:2024 controls | 1-9-5, 2-2-1, 2-2-2, 2-2-3, 2-2-4 |
 
 > Rimal Byte is a fictional company. This policy was written for a portfolio GRC project.
 
@@ -27,27 +27,35 @@ administrator accounts and any remote access to company systems.
 1. The IT Manager must put the requirements in this policy into practice. [2-2-2]
 2. Every person must have their own named account. Shared and generic accounts must not be used.
    Passwords must not be shared. [2.2.3.1]
-3. Passwords must follow the CIS baseline: at least 14 characters, no reuse of the last 24
-   passwords, and an account lockout after no more than 5 failed sign-in attempts. [2.2.3.1]
+3. Windows sign-in on company laptops must follow the CIS baseline for passwords: at least 14
+   characters, no reuse of the last 24 passwords, and an account lockout after no more than 5
+   failed sign-in attempts. Microsoft 365 accounts must rely on multi-factor authentication and
+   Microsoft's password rules. [2.2.3.1]
 4. Multi-factor authentication must be turned on for every Microsoft 365 account, including
    administrators, and for any remote access to company systems. It must not be switched off for
-   any account. [2.2.3.2]
+   any account. The accepted factors are these: [2.2.3.2]
+   - Every user must use an authenticator app with number matching.
+   - The two administrators must use a phishing-resistant method, such as a hardware security
+     key, on their administrator accounts.
+   - SMS must be used only as a temporary fallback, for example while a user's authenticator app
+     is being set up or replaced.
 5. Access must follow least privilege. People get only the access their job needs, and only for
    as long as they need it. [2.2.3.3]
 6. Administrator rights must be held only by IT staff. Each administrator must use a separate
    administrator account for administrator work and a normal account for email and browsing.
    [2.2.3.3, 2.2.3.4]
-7. Access is granted only on a request from the HR Officer. The request names the person, their
-   role and the access they need. The IT Manager grants it and records the date. [2.2.3.3]
+7. Access must be granted only on a request from the HR Officer. The request must name the
+   person, their role and the access they need. The IT Manager must grant it and record the
+   date. [2.2.3.3]
 8. Access must be changed when a person changes role, and removed on the person's last day. The
    IT Manager must disable all of a leaver's accounts on their last day and record the date.
-   [2.2.3.3]
+   [2.2.3.3, 1-9-5]
 9. Every quarter the IT Manager must review all accounts and access rights, including
    administrator accounts and accounts of contractors, remove what is no longer needed, and
    report the results to the Cybersecurity Lead. [2.2.3.5, 2-2-4]
 10. The Cybersecurity Lead must check each quarterly report against the HR requests for the
     quarter, follow up anything found, and report the results to the supervisory committee at
-    least once a year. [2-2-4]
+    every quarter. [2-2-4]
 
 ## Roles
 
@@ -75,4 +83,4 @@ must report it to the Cybersecurity Lead.
 ## Review
 
 The Cybersecurity Lead reviews this policy every year in October, or sooner if the law or the
-business changes significantly. Changes are recorded and approved by the General Manager.
+business changes significantly. Changes are recorded and approved by the General Manager. [2-2-4]
