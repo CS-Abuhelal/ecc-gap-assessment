@@ -1,0 +1,212 @@
+{% macro pct(value) %}{{ "n/a" if value is none else "%.1f%%"|format(value) }}{% endmacro %}
+{% macro badge(status) %}{% if status %}<span class="badge {{ status_class[status] }}">{{ status }}</span>{% else %}<span class="badge na">No rating</span>{% endif %}{% endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCA ECC Gap Assessment</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #1d2330; --muted: #5b6475; --line: #d9dde5; --panel: #f5f7fa;
+  --ok: #1e7f4f; --ok-bg: #dff3e7; --part: #8a6100; --part-bg: #fff1c7;
+  --gap: #b42318; --gap-bg: #fde3e1; --na: #5b6475; --na-bg: #eceef2;
+  --low: #dff3e7; --medium: #fff1c7; --high: #fdd9b5; --critical: #f9c0bb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --fg: #e6e9ef; --muted: #a0a8b8; --line: #2c323d; --panel: #1a1f27;
+    --ok: #7dd3a4; --ok-bg: #173826; --part: #f2c94c; --part-bg: #3a2f10;
+    --gap: #f59a92; --gap-bg: #44201d; --na: #a0a8b8; --na-bg: #262b34;
+    --low: #173826; --medium: #3a2f10; --high: #4a2c12; --critical: #4d1f1c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 16px 0 6px; }
+.meta, .note { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin: 24px 0; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; }
+.tile b { display: block; font-size: 26px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px;
+  border-bottom: 1px solid var(--line); }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px;
+  white-space: nowrap; }
+.ok { color: var(--ok); background: var(--ok-bg); }
+.part { color: var(--part); background: var(--part-bg); }
+.gap { color: var(--gap); background: var(--gap-bg); }
+.na { color: var(--na); background: var(--na-bg); }
+.bar { height: 10px; background: var(--na-bg); border-radius: 5px; min-width: 120px; }
+.bar span { display: block; height: 100%; background: var(--ok); border-radius: 5px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.filters input, .filters select { font: inherit; padding: 6px 8px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--fg); }
+.heatmap { width: auto; }
+.heatmap td { width: 52px; height: 44px; text-align: center; border: 1px solid var(--line); }
+.heatmap th { text-align: center; }
+.low { background: var(--low); }
+.medium { background: var(--medium); }
+.high { background: var(--high); }
+.critical { background: var(--critical); }
+.downloads a { margin-right: 16px; }
+@media print {
+  @page { size: A4; margin: 16mm 14mm; }
+  body { font-size: 11px; }
+  main { max-width: none; padding: 0; }
+  .filters, .downloads { display: none; }
+  h2 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  .page-break { break-before: page; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>NCA ECC-2:2024 Gap Assessment</h1>
+  <p class="meta">Workstation {{ snapshot.host }} &middot; snapshot &ldquo;{{ snapshot.label }}&rdquo; taken {{ snapshot.taken_at.strftime("%d %B %Y") }}{% if before_snapshot %} &middot; compared with &ldquo;{{ before_snapshot.label }}&rdquo; ({{ before_snapshot.taken_at.strftime("%d %B %Y") }}){% endif %}</p>
+  <p class="downloads"><a href="ecc-gap-assessment.xlsx">Download the workbook (.xlsx)</a><a href="ecc-gap-assessment.pdf">Download the report (PDF)</a></p>
+</header>
+
+<section class="tiles">
+  <div class="tile"><b>{{ pct(overall) }}</b>Compliance{% if overall_before is not none %} (was {{ pct(overall_before) }}){% endif %}</div>
+{% for status in statuses %}
+  <div class="tile"><b>{{ counts[status] }}</b>{{ status }}</div>
+{% endfor %}
+  <div class="tile"><b>{{ open_risks|length }}</b>Open risks</div>
+</section>
+
+<h2>Results by domain</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Domain</th>{% if before_snapshot %}<th>{{ before_snapshot.label }}</th>{% endif %}<th>{{ snapshot.label }}</th><th>Compliance</th></tr></thead>
+<tbody>
+{% for d in domains %}
+<tr><td>{{ d.id }} {{ d.title }}</td>{% if before_snapshot %}<td>{{ pct(d.before) }}</td>{% endif %}<td>{{ pct(d.after) }}</td><td><div class="bar"><span style="width: {{ d.after or 0 }}%"></span></div></td></tr>
+{% endfor %}
+</tbody></table></div>
+
+{% if before_snapshot %}
+<h2>What changed</h2>
+{% if changes %}
+<div class="table-wrap"><table>
+<thead><tr><th>Control</th><th>Before</th><th>After</th></tr></thead>
+<tbody>
+{% for c in changes %}
+<tr><td>{{ c.control.id }} {{ c.control.subdomain_title }}</td><td>{{ badge(c.before) }}</td><td>{{ badge(c.after) }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+<p class="note">No control changed status.</p>
+{% endif %}
+{% endif %}
+
+<h2>Controls</h2>
+<div class="filters">
+  <input id="q" type="search" placeholder="Filter by id or text" aria-label="Filter controls">
+  <select id="status" aria-label="Filter by status"><option value="">All statuses</option>{% for status in statuses %}<option>{{ status }}</option>{% endfor %}</select>
+</div>
+<div class="table-wrap"><table id="controls">
+<thead><tr><th>ID</th><th>Control</th><th>Status</th><th>Evidence</th></tr></thead>
+<tbody>
+{% for r in results %}
+<tr data-status="{{ r.status or '' }}"><td>{{ r.control.id }}</td><td><b>{{ r.control.subdomain_title }}</b><br>{{ r.control.text }}</td><td>{{ badge(r.status) }}</td><td>{{ r.summary }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+
+<h2>Risk heatmap</h2>
+<p class="note">Open risks by likelihood (across) and impact (down).</p>
+<table class="heatmap">
+<thead><tr><th>Impact</th>{% for likelihood in range(1, 6) %}<th>{{ likelihood }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for row in heatmap %}
+{% set impact = 6 - loop.index %}
+<tr><th>{{ impact }}</th>{% for count in row %}<td class="{{ rating_class[rating(impact * loop.index)] }}">{{ count or "" }}</td>{% endfor %}</tr>
+{% endfor %}
+</tbody></table>
+
+<h2>Risk register</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Risk</th><th>Controls</th><th>Likelihood</th><th>Impact</th><th>Score</th><th>Rating</th><th>Treatment</th><th>Owner</th><th>Due</th><th>State</th></tr></thead>
+<tbody>
+{% for row in risks %}
+<tr><td>{{ row.risk.id }}</td><td>{{ row.risk.statement }}</td><td>{{ row.risk.controls|join(", ") }}</td><td>{{ row.risk.likelihood }}</td><td>{{ row.risk.impact }}</td><td>{{ row.score }}</td><td><span class="badge {{ rating_class[row.rating] }}">{{ row.rating }}</span></td><td>{{ row.risk.treatment }}</td><td>{{ row.risk.owner }}</td><td>{{ row.risk.due }}</td><td>{{ "Closed" if row.closed else "Open" }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+
+<h2>Roadmap</h2>
+{% for name in bucket_order %}
+{% set items = roadmap|selectattr("bucket", "equalto", name)|list %}
+{% if items %}
+<h3>{{ name }}</h3>
+<ul>
+{% for row in items %}
+<li><b>{{ row.risk.id }}</b> {{ row.risk.statement }} ({{ row.risk.owner }}, due {{ row.risk.due }})</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endfor %}
+{% if not roadmap %}
+<p class="note">No open risks.</p>
+{% endif %}
+
+<h2>Scope and applicability</h2>
+<p>The assessment covers one Windows 11 workstation ({{ snapshot.host }}) and the Wazuh SIEM that monitors it. Technical results are measured by Wazuh; governance ratings are judged against the company's own documents.</p>
+{% if not_applicable %}
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Subdomain</th><th>Why it does not apply</th></tr></thead>
+<tbody>
+{% for r in not_applicable %}
+<tr><td>{{ r.control.id }}</td><td>{{ r.control.subdomain_title }}</td><td>{{ r.na_reason }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% endif %}
+
+<h2 class="page-break">Method</h2>
+<ul>
+  <li>Framework: NCA Essential Cybersecurity Controls (ECC-2:2024), {{ results|length }} main controls.</li>
+  <li>Technical evidence: {{ check_count }} checks from the {{ policy_name }}, collected by Wazuh Security Configuration Assessment, plus open vulnerability counts and log retention.</li>
+  <li>Checks rate a control Implemented when all usable checks pass, Partially implemented when some pass and Not implemented when none pass. Checks that are not applicable or were not scanned are left out.</li>
+  <li>When a control has both technical and documentary evidence, it gets the weaker rating.</li>
+  <li>Compliance = (Implemented + &frac12; &times; Partially implemented) &divide; applicable controls.</li>
+  <li>Risk score = likelihood &times; impact (1&ndash;5 each): 1&ndash;4 Low, 5&ndash;9 Medium, 10&ndash;16 High, 20&ndash;25 Critical.</li>
+</ul>
+
+<h2 class="page-break">Appendix: CIS to ECC mapping</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>CIS section</th><th>ECC controls</th><th>Why</th></tr></thead>
+<tbody>
+{% for rule in rules %}
+<tr><td>{{ rule.cis }}</td><td>{{ rule.ecc|join(", ") }}</td><td>{{ rule.why }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+
+<p class="note">Sources: NCA Essential Cybersecurity Controls ECC-2:2024 (Public, TLP: White); CIS Microsoft Windows 11 Enterprise Benchmark v3.0.0 through the Wazuh SCA policy.</p>
+</main>
+<script>
+(() => {
+  const query = document.getElementById("q");
+  const status = document.getElementById("status");
+  const rows = Array.from(document.querySelectorAll("#controls tbody tr"));
+  const apply = () => {
+    const text = query.value.trim().toLowerCase();
+    rows.forEach((row) => {
+      const textMatch = !text || row.textContent.toLowerCase().includes(text);
+      const statusMatch = !status.value || row.dataset.status === status.value;
+      row.hidden = !(textMatch && statusMatch);
+    });
+  };
+  query.addEventListener("input", apply);
+  status.addEventListener("change", apply);
+})();
+</script>
+</body>
+</html>
