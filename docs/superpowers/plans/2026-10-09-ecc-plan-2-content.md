@@ -696,13 +696,16 @@ entries:
     note: Annual review cycle set; first review due October 2027.
 
   # 1-6 Cybersecurity in Information and Technology Project Management
-  - {control: 1-6-1, status: Not implemented, note: "Project and change procedures do not include cybersecurity requirements."}
+  - {control: 1-6-1, status: Not implemented, note: "Project and change procedures do not include cybersecurity requirements; the risk method only asks for a risk assessment at the start of technology projects."}
   - {control: 1-6-2, status: Not implemented, note: "No vulnerability assessment or hardening review before changes go live."}
   - {control: 1-6-3, status: Not implemented, note: "Software projects have no secure coding standard or security testing step."}
   - {control: 1-6-4, status: Not implemented, note: "No project security requirements to review."}
 
   # 1-8 Periodical Cybersecurity Review and Audit
-  - {control: 1-8-1, status: Partially implemented, note: "This gap assessment is the first internal review of the controls; there is no regular review schedule yet."}
+  - control: 1-8-1
+    status: Partially implemented
+    documents: [docs/policies/risk-management-method.md]
+    note: The risk management method sets an annual full assessment against ECC; this gap assessment is the first.
   - {control: 1-8-2, status: Not implemented, note: "No independent review or audit has been done."}
   - {control: 1-8-3, status: Partially implemented, note: "This assessment's results go to the General Manager; the supervisory committee has not met to receive them."}
 
@@ -714,7 +717,12 @@ entries:
     status: Partially implemented
     documents: [docs/policies/cybersecurity-policy.md]
     note: Staff must acknowledge and follow the new policies, but there is no awareness training.
-  - {control: 1-9-5, status: Partially implemented, note: "The IT Manager disables leavers' accounts, but there is no checklist or record."}
+  - control: 1-9-5
+    status: Partially implemented
+    documents: [docs/policies/access-control-policy.md]
+    note: >-
+      In practice the IT Manager disables leavers' accounts without a checklist or record; the
+      access control policy now requires a dated record.
   - {control: 1-9-6, status: Not implemented, note: "No personnel security requirements to review."}
 
   # 1-10 Cybersecurity Awareness and Training Program
@@ -755,7 +763,7 @@ entries:
     note: >-
       The cybersecurity policy commits to the CIS workstation baseline, but there is no detailed
       protection standard.
-  - {control: 2-3-4, status: Partially implemented, note: "This gap assessment is the first review of workstation protection; there is no regular schedule yet."}
+  - {control: 2-3-4, status: Partially implemented, note: "This gap assessment is the first review of workstation protection under the annual assessment cycle."}
 
   # 2-4 Email Protection
   - {control: 2-4-1, status: Not implemented, note: "No documented email security requirements."}
@@ -807,7 +815,7 @@ entries:
   - control: 2-10-4
     status: Partially implemented
     documents: [docs/policies/vulnerability-management-policy.md]
-    note: Annual review cycle set; first review due October 2027.
+    note: Quarterly report to the supervisory committee and annual policy review set; none done yet.
 
   # 2-11 Penetration Testing
   - {control: 2-11-1, status: Not implemented, note: "No penetration testing requirements."}
@@ -824,15 +832,15 @@ entries:
     status: Partially implemented
     documents: [docs/policies/logging-and-monitoring-policy.md]
     note: >-
-      Wazuh collects workstation security events; not every system sends logs, and alerts are
-      not reviewed on a schedule.
+      Wazuh collects workstation security events; not every system sends logs yet, and the daily
+      alert review the policy requires has not started.
   - control: 2-12-4
     status: Partially implemented
     documents: [docs/policies/logging-and-monitoring-policy.md]
-    note: Annual review cycle set; first review due October 2027.
+    note: Quarterly report to the supervisory committee and annual policy review set; none done yet.
 
   # 2-13 Cybersecurity Incident and Threat Management
-  - {control: 2-13-1, status: Not implemented, note: "No documented incident and threat management requirements."}
+  - {control: 2-13-1, status: Not implemented, note: "Roles say who reports and coordinates incidents, but no incident and threat management requirements are documented."}
   - {control: 2-13-2, status: Not implemented, note: "No incident response process in place."}
   - {control: 2-13-3, status: Not implemented, note: "Wazuh raises alerts, but there is no response plan, incident classification, NCA reporting or threat intelligence feed."}
   - {control: 2-13-4, status: Not implemented, note: "No incident management requirements to review."}
