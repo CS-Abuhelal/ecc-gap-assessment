@@ -39,24 +39,24 @@ rules:
   # 5 System Services
   - cis: "5"
     ecc: ["2-5-3"]
-    why: "Disabling unneeded services reduces the network services and ports exposed (2.5.3.5)."
+    why: "Disabling unneeded services, most of them network-facing, reduces the services and ports exposed (2.5.3.5)."
 
   # 9 Windows Defender Firewall
   - cis: "9"
     ecc: ["2-5-3"]
     why: "The host firewall controls inbound connections and network isolation (2.5.3.1, 2.5.3.5)."
-  - {cis: "9.1.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (domain profile) is a security event log (2.12.3.1)."}
-  - {cis: "9.1.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (domain profile) keeps enough history (2.12.3.1)."}
-  - {cis: "9.1.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (domain profile) records blocked traffic (2.12.3.1)."}
-  - {cis: "9.1.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (domain profile) records network activity (2.12.3.1)."}
-  - {cis: "9.2.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (private profile) is a security event log (2.12.3.1)."}
-  - {cis: "9.2.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (private profile) keeps enough history (2.12.3.1)."}
-  - {cis: "9.2.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (private profile) records blocked traffic (2.12.3.1)."}
-  - {cis: "9.2.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (private profile) records network activity (2.12.3.1)."}
-  - {cis: "9.3.6", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (public profile) is a security event log (2.12.3.1)."}
-  - {cis: "9.3.7", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (public profile) keeps enough history (2.12.3.1)."}
-  - {cis: "9.3.8", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (public profile) records blocked traffic (2.12.3.1)."}
-  - {cis: "9.3.9", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (public profile) records network activity (2.12.3.1)."}
+  - {cis: "9.1.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (domain profile) is a security event log (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.1.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (domain profile) keeps enough history (2.12.3.5); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.1.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (domain profile) records blocked traffic (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.1.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (domain profile) records network activity (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.2.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (private profile) is a security event log (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.2.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (private profile) keeps enough history (2.12.3.5); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.2.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (private profile) records blocked traffic (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.2.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (private profile) records network activity (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.3.6", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (public profile) is a security event log (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.3.7", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (public profile) keeps enough history (2.12.3.5); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.3.8", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (public profile) records blocked traffic (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
+  - {cis: "9.3.9", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (public profile) records network activity (2.12.3.1); it is also firewall configuration (2.5.3.1)."}
 
   # 17 Advanced Audit Policy
   - cis: "17"
@@ -85,7 +85,7 @@ rules:
     why: "Recording command lines in process creation events improves monitoring (2.12.3.1)."
   - cis: "18.9.4"
     ecc: ["2-2-3"]
-    why: "Credential delegation settings protect credentials used for remote sign-in (2.2.3.2)."
+    why: "Credential delegation settings protect credentials used for remote sign-in (2.2.3.1)."
   - cis: "18.9.7"
     ecc: ["2-3-3"]
     why: "Device installation restrictions limit what hardware, including external media, can be attached (2.3.3.2)."
@@ -101,9 +101,8 @@ rules:
   - cis: "18.9.28"
     ecc: ["2-2-3"]
     why: "Logon settings control which sign-in methods are allowed (2.2.3.1)."
-  - cis: "18.9.33"
-    ecc: ["2-2-3"]
-    why: "Power settings require a password when the computer wakes (2.2.3.1)."
+  - {cis: "18.9.33.6.5", ecc: ["2-2-3"], why: "Requiring a password when the computer wakes (on battery) protects local sign-in (2.2.3.1)."}
+  - {cis: "18.9.33.6.6", ecc: ["2-2-3"], why: "Requiring a password when the computer wakes (plugged in) protects local sign-in (2.2.3.1)."}
   - cis: "18.9.35"
     ecc: ["2-5-3"]
     why: "Remote Assistance is a remote access service that should be restricted (2.5.3.5)."

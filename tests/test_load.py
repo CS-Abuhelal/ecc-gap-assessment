@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from ecc.load import DataError, load_dataset, load_snapshots
-from tests.fixtures import RISKS, rewrite
+from tests.fixtures import APPLICABILITY, RISKS, rewrite
 
 
 def test_dataset_flattens_the_catalog(dataset):
@@ -47,6 +47,19 @@ def test_a_missing_file_names_the_file(root: Path):
 def test_invalid_values_name_the_file(root: Path):
     rewrite(root, "risks.yaml", {"risks": [{**RISKS["risks"][0], "likelihood": 9}]})
     with pytest.raises(DataError, match="risks.yaml"):
+        load_dataset(root)
+
+
+def test_blank_text_is_rejected(root: Path):
+    entry = {**APPLICABILITY["not_applicable"][0], "reason": "  "}
+    rewrite(root, "applicability.yaml", {"not_applicable": [entry]})
+    with pytest.raises(DataError, match="applicability.yaml"):
+        load_dataset(root)
+
+
+def test_missing_text_is_rejected(root: Path):
+    rewrite(root, "applicability.yaml", {"not_applicable": [{"control": "4-2-1"}]})
+    with pytest.raises(DataError, match="applicability.yaml"):
         load_dataset(root)
 
 

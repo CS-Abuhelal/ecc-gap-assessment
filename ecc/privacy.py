@@ -41,7 +41,8 @@ def write_snapshot(snapshot: Snapshot, path: Path, terms: Iterable[str]) -> None
     leaks = find_leaks(text, terms)
     if leaks:
         raise PrivacyError(
-            f"Snapshot not written: it contains {len(leaks)} forbidden term(s). Nothing was saved."
+            f"Snapshot not written: it contains {len(leaks)} forbidden term(s). Nothing was saved. "
+            "Check --label and ECC_FORBIDDEN_TERMS."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8", newline="\n") as file:

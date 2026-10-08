@@ -1,9 +1,22 @@
+import copy
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
+
+import pytest
 
 from ecc.load import load_dataset, load_snapshots
 from ecc.validate import listed, validate
-from tests.fixtures import CIS_CHECKS, EVIDENCE, MAPPING, RISKS, rewrite
+from tests.fixtures import (
+    APPLICABILITY,
+    CATALOG,
+    CIS_CHECKS,
+    EVIDENCE,
+    MAPPING,
+    RISKS,
+    rewrite,
+)
 
 
 def problems(root: Path) -> list[str]:
@@ -117,3 +130,153 @@ def test_duplicate_policy_check_ids(root):
     checks = [*CIS_CHECKS["checks"], CIS_CHECKS["checks"][0]]
     rewrite(root, "cis_checks.yaml", {**CIS_CHECKS, "checks": checks})
     assert "cis_checks.yaml: check ids listed twice (1): 26000" in problems(root)
+
+
+def variant(source: dict[str, Any], edit: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+    """A deep copy of a fixture constant with one edit applied; the constant stays untouched."""
+    data = copy.deepcopy(source)
+    edit(data)
+    return data
+
+
+def edit_data(name: str, content: dict[str, Any]) -> Callable[[Path], None]:
+    return lambda root: rewrite(root, name, content)
+
+
+def edit_baseline(change: Callable[[dict[str, Any]], None]) -> Callable[[Path], None]:
+    def mutate(root: Path) -> None:
+        path = root / "snapshots" / "2026-10-baseline.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        change(data)
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+    return mutate
+
+
+def add_check_99999(data: dict[str, Any]) -> None:
+    data["checks"].append({"id": 99999, "result": "passed"})
+    data["policy"]["checks_total"] = 5
+
+
+def claim_five_checks(data: dict[str, Any]) -> None:
+    data["policy"]["checks_total"] = 5
+
+
+def logging_document(root: Path) -> str:
+    return str((root / "docs" / "policies" / "logging.md").resolve())
+
+
+def use_absolute_logging_document(root: Path) -> None:
+    entries = copy.deepcopy(EVIDENCE["entries"])
+    entries[2]["documents"] = [logging_document(root)]
+    rewrite(root, "evidence.yaml", {"entries": entries})
+
+
+CASES = [
+    pytest.param(
+        edit_data(
+            "catalog.yaml",
+            variant(
+                CATALOG,
+                lambda d: d["domains"][0]["subdomains"][0]["controls"].append(
+                    {"id": "1-3-1", "text": "Policies shall be reviewed."}
+                ),
+            ),
+        ),
+        ["catalog.yaml: duplicate control ids (1): 1-3-1"],
+        id="duplicate catalog control",
+    ),
+    pytest.param(
+        edit_data(
+            "mapping.yaml",
+            variant(MAPPING, lambda d: d["rules"].append(copy.deepcopy(d["rules"][1]))),
+        ),
+        ["mapping.yaml: duplicate rules (1): 17"],
+        id="duplicate mapping rule",
+    ),
+    pytest.param(
+        edit_data(
+            "applicability.yaml",
+            variant(
+                APPLICABILITY,
+                lambda d: d["not_applicable"].append({"control": "4-2-9", "reason": "None."}),
+            ),
+        ),
+        ["applicability.yaml: unknown ECC controls (1): 4-2-9"],
+        id="applicability unknown control",
+    ),
+    pytest.param(
+        edit_data(
+            "applicability.yaml",
+            variant(
+                APPLICABILITY,
+                lambda d: d["not_applicable"].append(copy.deepcopy(d["not_applicable"][0])),
+            ),
+        ),
+        ["applicability.yaml: controls listed twice (1): 4-2-1"],
+        id="applicability listed twice",
+    ),
+    pytest.param(
+        edit_data(
+            "evidence.yaml",
+            variant(
+                EVIDENCE,
+                lambda d: d["entries"].append(
+                    {"control": "1-3-9", "status": "Implemented", "note": "Unknown."}
+                ),
+            ),
+        ),
+        ["evidence.yaml: unknown ECC controls (1): 1-3-9"],
+        id="evidence unknown control",
+    ),
+    pytest.param(
+        edit_data(
+            "evidence.yaml",
+            variant(EVIDENCE, lambda d: d["entries"].append(copy.deepcopy(d["entries"][0]))),
+        ),
+        ["evidence.yaml: controls listed twice (1): 1-3-1"],
+        id="evidence listed twice",
+    ),
+    pytest.param(
+        edit_data(
+            "risks.yaml",
+            variant(RISKS, lambda d: d["risks"].append(copy.deepcopy(d["risks"][2]))),
+        ),
+        ["risks.yaml: risk ids used twice (1): R-03"],
+        id="risk id used twice",
+    ),
+    pytest.param(
+        edit_data(
+            "risks.yaml",
+            variant(RISKS, lambda d: d["risks"][0].update(controls=["2-2-9"])),
+        ),
+        ["risks.yaml: unknown ECC controls (1): 2-2-9"],
+        id="risk unknown control",
+    ),
+    pytest.param(
+        edit_baseline(claim_five_checks),
+        [
+            "snapshot 'baseline': holds 4 check results but says 5",
+            "snapshot 'baseline': expects 5 checks, cis_checks.yaml has 4",
+        ],
+        id="snapshot total does not match its checks",
+    ),
+    pytest.param(
+        edit_baseline(add_check_99999),
+        ["snapshot 'baseline': unknown check ids (1): 99999"],
+        id="snapshot unknown check id",
+    ),
+    pytest.param(
+        use_absolute_logging_document,
+        ["evidence.yaml: document paths outside the repository (1): {logging_document}"],
+        id="evidence absolute document path",
+    ),
+]
+
+
+@pytest.mark.parametrize(("mutate", "expected"), CASES)
+def test_other_problems_are_reported(root, mutate, expected):
+    mutate(root)
+    found = problems(root)
+    for message in expected:
+        assert message.format(logging_document=logging_document(root)) in found

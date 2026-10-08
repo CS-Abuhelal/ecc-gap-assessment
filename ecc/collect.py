@@ -35,7 +35,10 @@ TLS_FAILED = (
     "and WAZUH_TLS_SERVER_NAME to wazuh.indexer, then retry."
 )
 INVALID_URL = "WAZUH_INDEXER_URL is not a valid URL."
-UNEXPECTED = "The Wazuh indexer sent an unexpected answer. Nothing was saved."
+UNEXPECTED = (
+    "The Wazuh indexer sent an unexpected answer. Nothing was saved. "
+    "Check that WAZUH_INDEXER_URL points at the indexer (port 9200)."
+)
 PARTIAL = (
     "The Wazuh indexer gave a partial answer (timed out or failed shards). Wait until it has "
     "finished starting, then retry. Nothing was saved."
@@ -69,6 +72,10 @@ class IndexerSettings:
             raise CollectError(
                 "WAZUH_INDEXER_URL is not set. Start Docker and Wazuh, then set "
                 "WAZUH_INDEXER_URL, WAZUH_INDEXER_USER and WAZUH_INDEXER_PASSWORD."
+            )
+        if not url.lower().startswith("https://"):
+            raise CollectError(
+                "WAZUH_INDEXER_URL must start with https://, for example https://127.0.0.1:9200."
             )
         return cls(
             url=url.rstrip("/"),

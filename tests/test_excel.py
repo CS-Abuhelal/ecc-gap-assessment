@@ -90,7 +90,17 @@ def test_the_summary_explains_how_to_read_it(tmp_path, dataset, after):
     assert "20 October 2026" in notes["As of"]
     assert "WS-01" in notes["As of"]
     assert "0.5" in notes["Scoring"]
+    assert "rated applicable controls" in notes["Scoring"]
+    assert "percentage points" not in notes["Scoring"]
     assert "snapshot date" in notes["Roadmap"]
+
+
+def test_the_scoring_note_explains_the_change_column_only_when_comparing(
+    tmp_path, dataset, baseline, after
+):
+    sheet = workbook(tmp_path, dataset, after, baseline)["Summary"]
+    notes = {row[0]: row[1] for row in sheet.iter_rows(values_only=True) if row[0] == "Scoring"}
+    assert notes["Scoring"].endswith(" Change is in percentage points.")
 
 
 def test_big_sheets_have_filters(tmp_path, dataset, after):

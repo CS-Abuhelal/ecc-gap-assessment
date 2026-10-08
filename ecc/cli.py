@@ -96,6 +96,11 @@ def run_collect(
         f"{counts['not applicable']} not applicable, {counts['not scanned']} not scanned."
     )
     print("Review the file before committing it.")
+    if counts["not scanned"]:
+        print(
+            f"Warning: {counts['not scanned']} checks were not scanned yet. Delete "
+            f"snapshots/{path.name}, wait for the agent's scan to finish, then collect again."
+        )
     return 0
 
 

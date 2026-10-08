@@ -43,8 +43,9 @@ def test_a_snapshot_is_written_with_the_schema_key(tmp_path):
 def test_a_leak_stops_the_write(tmp_path):
     snapshot = Snapshot.model_validate({**BASELINE, "label": "jane-test"})
     path = tmp_path / "out.json"
-    with pytest.raises(PrivacyError, match="1 forbidden term"):
+    with pytest.raises(PrivacyError, match="1 forbidden term") as caught:
         write_snapshot(snapshot, path, ["Jane"])
+    assert "Jane" not in str(caught.value)
     assert not path.exists()
 
 

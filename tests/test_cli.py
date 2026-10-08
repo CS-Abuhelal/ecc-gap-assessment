@@ -60,7 +60,22 @@ def test_collect_writes_a_snapshot_for_review(root, capsys, monkeypatch):
     assert (root / "snapshots" / "2026-10-test.json").is_file()
     out = capsys.readouterr().out
     assert "1 passed, 2 failed, 1 not applicable, 0 not scanned" in out
+    assert "Warning" not in out
     assert "Review the file before committing it." in out
+    assert run("check", "--root", str(root)) == 0
+
+
+def test_collect_warns_about_checks_not_scanned_yet(root, capsys, monkeypatch):
+    checks = [*BASELINE["checks"][:3], {"id": 26140, "result": "not scanned"}]
+    unscanned = Snapshot.model_validate({**BASELINE, "label": "test", "checks": checks})
+    monkeypatch.setattr(cli, "collect", lambda *args, **kwargs: Collected(unscanned, "lab-agent"))
+    assert run("collect", "--root", str(root), "--label", "test") == 0
+    out = capsys.readouterr().out
+    assert "1 not scanned" in out
+    assert (
+        "Warning: 1 checks were not scanned yet. Delete snapshots/2026-10-test.json, wait for "
+        "the agent's scan to finish, then collect again."
+    ) in out
 
 
 def test_collect_refuses_a_forbidden_term(root, capsys, monkeypatch):
@@ -98,6 +113,7 @@ def test_collect_refuses_the_windows_user_name(root, capsys, monkeypatch):
     monkeypatch.setattr(cli, "collect", fake_collect)
     assert run("collect", "--root", str(root), "--label", "jdoe") == 1
     assert not list((root / "snapshots").glob("*jdoe*"))
+    assert "forbidden term" in capsys.readouterr().err
 
 
 def test_build_with_invalid_data_writes_nothing(root, capsys):

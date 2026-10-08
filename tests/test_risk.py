@@ -53,6 +53,11 @@ def test_rows_are_sorted_by_score(dataset, baseline):
     assert not any(row.closed for row in rows)
 
 
+def test_the_baseline_roadmap_runs_soonest_first(dataset, baseline):
+    rows = roadmap(risk_rows(dataset.risks, assess(dataset, baseline)))
+    assert [row.risk.id for row in rows] == ["R-01", "R-02", "R-03"]
+
+
 def test_a_risk_closes_when_its_controls_are_implemented(dataset, after):
     rows = risk_rows(dataset.risks, assess(dataset, after))
     assert {row.risk.id: row.closed for row in rows} == {

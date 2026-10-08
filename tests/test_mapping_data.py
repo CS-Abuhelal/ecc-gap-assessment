@@ -42,6 +42,9 @@ def test_spot_checks():
     assert controls_for(checks[26005], mapping) == ("2-2-3",)  # 1.2.1 lockout duration
     assert controls_for(checks[26138], mapping) == ("2-5-3", "2-12-3")  # 9.3.9 firewall log
     assert controls_for(checks[26139], mapping) == ("2-12-3",)  # 17.1.1 audit credentials
+    assert controls_for(checks[26281], mapping) == ("2-3-2",)  # 18.9.33.6.1 standby network
+    assert controls_for(checks[26285], mapping) == ("2-2-3",)  # 18.9.33.6.5 wake password
+    assert controls_for(checks[26286], mapping) == ("2-2-3",)  # 18.9.33.6.6 wake password
     assert controls_for(checks[26294], mapping) == ("2-3-3",)  # 18.9.51.1.1 NTP client
     assert controls_for(checks[26403], mapping) == ("2-3-3",)  # 18.10.42.17 Defender AV
     assert controls_for(checks[26474], mapping) == ("2-3-3",)  # 18.10.92.2.1 auto updates

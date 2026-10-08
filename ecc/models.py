@@ -13,6 +13,7 @@ SUBDOMAIN_PATTERN = r"^[1-4]-\d{1,2}$"
 SUBCONTROL_PATTERN = r"^[1-4]\.\d{1,2}\.\d{1,2}\.\d{1,2}$"
 CIS_PATTERN = r"^\d+(\.\d+)*$"
 LABEL_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
+NOT_BLANK = r"\S"  # at least one character that is not whitespace
 HOST_PLACEHOLDER = "WS-01"
 
 ControlId = Annotated[str, Field(pattern=CONTROL_PATTERN)]
@@ -105,7 +106,7 @@ class CisPolicy(Strict):
 class Rule(Strict):
     cis: str = Field(pattern=CIS_PATTERN)
     ecc: tuple[ControlId, ...] = Field(min_length=1)
-    why: str = Field(min_length=1)
+    why: str = Field(min_length=1, pattern=NOT_BLANK)
 
 
 class FactLink(Strict):
@@ -122,7 +123,7 @@ class EvidenceEntry(Strict):
     control: ControlId
     status: Status
     documents: tuple[str, ...] = ()
-    note: str = Field(min_length=1)
+    note: str = Field(min_length=1, pattern=NOT_BLANK)
 
     @field_validator("status")
     @classmethod
@@ -138,7 +139,7 @@ class Evidence(Strict):
 
 class NotApplicable(Strict):
     control: ControlId
-    reason: str = Field(min_length=1)
+    reason: str = Field(min_length=1, pattern=NOT_BLANK)
 
 
 class Applicability(Strict):
@@ -148,11 +149,11 @@ class Applicability(Strict):
 class Risk(Strict):
     id: str = Field(pattern=r"^R-\d{2,3}$")
     controls: tuple[ControlId, ...] = Field(min_length=1)
-    statement: str = Field(min_length=1)
+    statement: str = Field(min_length=1, pattern=NOT_BLANK)
     likelihood: int = Field(ge=1, le=5)
     impact: int = Field(ge=1, le=5)
     treatment: Treatment
-    owner: str = Field(min_length=1)
+    owner: str = Field(min_length=1, pattern=NOT_BLANK)
     due: date
 
     @property

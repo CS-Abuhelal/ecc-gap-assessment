@@ -724,7 +724,7 @@ domains:
         the following as a minimum:'
       subcontrols:
       - id: 4.2.3.1
-        text: Protection of entity's data by cloud and hosting service providers in accordance
+        text: Protection of entity’s data by cloud and hosting service providers in accordance
           with its classification level and returning data (in a usable format) upon service
           completion.
       - id: 4.2.3.2

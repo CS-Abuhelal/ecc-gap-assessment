@@ -80,6 +80,17 @@ def test_settings_need_an_indexer_url():
         IndexerSettings.from_env({})
 
 
+@pytest.mark.parametrize("url", ["http://127.0.0.1:9200", "127.0.0.1:9200"])
+def test_settings_need_an_https_url(url):
+    with pytest.raises(CollectError, match="must start with https://"):
+        IndexerSettings.from_env({"WAZUH_INDEXER_URL": url})
+
+
+def test_settings_accept_https_in_any_case():
+    settings = IndexerSettings.from_env({"WAZUH_INDEXER_URL": "HTTPS://127.0.0.1:9200"})
+    assert settings.url == "HTTPS://127.0.0.1:9200"
+
+
 def test_settings_read_the_environment():
     settings = IndexerSettings.from_env(
         {

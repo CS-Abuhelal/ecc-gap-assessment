@@ -112,13 +112,14 @@ def write_summary(
             f"workstation {snapshot.host}",
         ]
     )
-    sheet.append(
-        [
-            "Scoring",
-            "Compliance = (Implemented + 0.5 x Partially implemented) / applicable controls. "
-            "n/a = no applicable rated controls. Change is in percentage points.",
-        ]
+    scoring = (
+        "Compliance = (Implemented + 0.5 x Partially implemented) / rated applicable controls "
+        "(Not applicable and unrated controls are left out). "
+        "n/a = no applicable rated controls."
     )
+    if before is not None:
+        scoring += " Change is in percentage points."
+    sheet.append(["Scoring", scoring])
     sheet.append(
         [
             "Roadmap",

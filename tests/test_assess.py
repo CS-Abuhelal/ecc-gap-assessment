@@ -1,7 +1,9 @@
+from dataclasses import replace
+
 import pytest
 
 from ecc.assess import assess, compare, compliance, domain_scores, rate_checks
-from ecc.models import Status
+from ecc.models import CheckResult, Evidence, EvidenceEntry, Status
 
 
 @pytest.mark.parametrize(
@@ -44,6 +46,15 @@ def test_a_control_gets_the_weaker_of_technical_and_documentary(dataset, baselin
     ]
 
 
+def test_documentary_evidence_can_be_the_weaker_side(dataset, after):
+    draft = EvidenceEntry(control="2-2-3", status=Status.PARTIAL, note="Policy drafted.")
+    evidence = Evidence(entries=(*dataset.evidence.entries, draft))
+    result = assess(replace(dataset, evidence=evidence), after).result("2-2-3")
+    assert result.technical is Status.IMPLEMENTED
+    assert result.documentary is Status.PARTIAL
+    assert result.status is Status.PARTIAL
+
+
 def test_after_statuses(dataset, after):
     found = statuses(assess(dataset, after))
     assert found["2-2-3"] is Status.IMPLEMENTED
@@ -64,6 +75,15 @@ def test_summary_lines(dataset, baseline):
         "Access control policy approved. (docs/policies/access-control.md)"
     )
     assert assessment.result("4-2-1").summary == "The company uses no cloud hosting."
+
+
+def test_the_summary_says_when_no_check_has_a_usable_result(dataset, baseline):
+    skipped = tuple(
+        CheckResult(id=check.id, result="not applicable") if check.id == 26139 else check
+        for check in baseline.checks
+    )
+    result = assess(dataset, baseline.model_copy(update={"checks": skipped})).result("2-12-3")
+    assert result.summary.startswith("No usable CIS results (2 not applicable or not scanned)")
 
 
 def test_compliance_and_domain_scores(dataset, baseline, after):
