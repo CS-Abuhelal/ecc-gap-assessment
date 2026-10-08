@@ -1,7 +1,8 @@
 """Turn `pdftotext -raw -enc UTF-8` output of the NCA ECC-2:2024 PDF into data/catalog.yaml.
 
 One-off helper: run it once, then review the YAML against the PDF. After that the YAML is
-the source of truth.
+the source of truth. pdftotext -raw drops a few spaces; data/catalog.yaml carries the hand
+fixes, and tests/test_catalog_data.py guards them.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ NOISE = re.compile(
     + r")$"
 )
 # Every page carries an Arabic watermark.
-ARABIC = re.compile(r"[؀-ۿﭐ-﷿ﹰ-﻿]")
+ARABIC = re.compile(r"[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]")
 END = "Appendices"
 
 

@@ -94,9 +94,9 @@ domains:
       - id: 1.5.3.3
         text: During planning to obtain third party services.
       - id: 1.5.3.4
-        text: During planning and beforethe releaseofnew technology services and products.
+        text: During planning and before the release of new technology services and products.
     - id: 1-5-4
-      text: Thecybersecurity risk management methodology and procedures shall be reviewed
+      text: The cybersecurity risk management methodology and procedures shall be reviewed
         and updated at planned intervals (or in case of changes to the relevant legislative
         and regulatory requirements and standards). Changes shall be documented and approved.
   - id: 1-6
@@ -202,7 +202,7 @@ domains:
         cybersecurity, cyber threats, and risks, and to build a positive cybersecurity awareness
         culture.
     - id: 1-10-2
-      text: Theapproved cybersecurity awareness program shall beimplemented within the entity.
+      text: The approved cybersecurity awareness program shall be implemented within the entity.
     - id: 1-10-3
       text: 'The cybersecurity awareness program shall include how to protect the entity against
         the most important and latest cyber risks and threats, including:'
@@ -322,8 +322,8 @@ domains:
       text: Cybersecurity requirements for protection of email service of the entity shall
         be implemented.
     - id: 2-4-3
-      text: 'Cybersecurity requirements for protection of the email serviceofthe entity shall
-        include the following as a minimum:'
+      text: 'Cybersecurity requirements for protection of the email service of the entity
+        shall include the following as a minimum:'
       subcontrols:
       - id: 2.4.3.1
         text: Analyzing and filtering email messages (specifically phishing emails and spam
@@ -497,7 +497,7 @@ domains:
           cyber risks.
       - id: 2.10.3.4
         text: Patch management to remediate vulnerabilities, and ensuring the integrity and
-          effectivenessoftheseupdates and fixes areverified usinganon-production environment
+          effectiveness of these updates and fixes are verified using a non-production environment
           before being applied.
       - id: 2.10.3.5
         text: Communication and subscription with trusted resources for new and up-to-date
@@ -682,8 +682,8 @@ domains:
         parties shall be identified, documented, and approved.
     - id: 4-1-2
       text: 'Cybersecurity requirements for contracts and agreements with third parties, e.g.
-        ServiceLevel Agreement(SLA), which, ifimpaired, may affect the entity''s data or services
-        shall include the following as a minimum:'
+        Service Level Agreement (SLA), which, if impaired, may affect the entity''s data or
+        services shall include the following as a minimum:'
       subcontrols:
       - id: 4.1.2.1
         text: Clauses of non-disclosure and the secure removal of the entity’s data by the
@@ -700,8 +700,8 @@ domains:
       subcontrols:
       - id: 4.1.3.1
         text: Conducting a cybersecurity risk assessment and ensuring the availability of
-          risk mitigation controls before signing contracts and agreements orupon making changes
-          to the relevant legislativeand regulatory requirements.
+          risk mitigation controls before signing contracts and agreements or upon making
+          changes to the relevant legislative and regulatory requirements.
       - id: 4.1.3.2
         text: Cybersecurity managed service centers for monitoring and operations which use
           remote access shall be fully located in the Kingdom of Saudi Arabia.
@@ -724,8 +724,9 @@ domains:
         the following as a minimum:'
       subcontrols:
       - id: 4.2.3.1
-        text: Protection of entity’s data by cloud and hosting service providers in accordancewith
-          its classificationleveland returningdata(in a usableformat) upon service completion.
+        text: Protection of entity's data by cloud and hosting service providers in accordance
+          with its classification level and returning data (in a usable format) upon service
+          completion.
       - id: 4.2.3.2
         text: Separation of the entity’s environment (especially virtual servers) from environments
           of other entities within the cloud computing service provider.

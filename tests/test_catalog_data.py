@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -12,6 +13,11 @@ EXPECTED = {
 }
 ALLOWED_NON_ASCII = set("’“”")
 FURNITURE = ("Essential Cybersecurity Controls", "Document classification", "Objective")
+GLUED = (
+    "beforethe", "releaseofnew", "Thecybersecurity", "Theapproved", "beimplemented",
+    "serviceofthe", "areverified", "ServiceLevel", "ifimpaired", "orupon", "legislativeand",
+    "accordancewith", "returningdata",
+)
 
 
 def test_108_controls_in_28_subdomains_and_4_domains():
@@ -59,3 +65,12 @@ def test_no_page_furniture_leaked_into_the_text():
             for marker in FURNITURE:
                 assert marker not in text, control.id
             assert all(ord(ch) < 128 or ch in ALLOWED_NON_ASCII for ch in text), control.id
+
+
+def test_no_words_run_together():
+    for control in load_catalog(CATALOG):
+        for text in (control.text, *(sub.text for sub in control.subcontrols)):
+            assert max(len(word) for word in text.split()) <= 22, control.id
+            assert not re.search(r"[a-z]\(", text), control.id
+            for glued in GLUED:
+                assert glued not in text, control.id
