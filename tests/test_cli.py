@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 from ecc import cli
@@ -83,3 +85,47 @@ def test_collect_needs_the_indexer_url(root, capsys):
 def test_labels_must_be_simple(root):
     with pytest.raises(SystemExit):
         run("collect", "--root", str(root), "--label", "Bad Label")
+
+
+def test_collect_refuses_the_real_agent_name(root, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "collect", fake_collect)
+    assert run("collect", "--root", str(root), "--label", "lab-agent") == 1
+    assert not list((root / "snapshots").glob("*lab-agent*"))
+    assert "forbidden term" in capsys.readouterr().err
+
+
+def test_collect_refuses_the_windows_user_name(root, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "collect", fake_collect)
+    assert run("collect", "--root", str(root), "--label", "jdoe") == 1
+    assert not list((root / "snapshots").glob("*jdoe*"))
+
+
+def test_build_with_invalid_data_writes_nothing(root, capsys):
+    rewrite(root, "risks.yaml", {"risks": RISKS["risks"][1:]})
+    assert run("build", "--root", str(root), "--no-pdf") == 1
+    assert not (root / "build").exists()
+    assert "gaps with no risk" in capsys.readouterr().err
+
+
+def test_build_without_a_browser_writes_nothing(root, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "find_browser", lambda env: None)
+    assert run("build", "--root", str(root)) == 1
+    assert not (root / "build").exists()
+
+
+def test_a_locked_output_file_is_a_clear_error(root, capsys):
+    (root / "build" / "ecc-gap-assessment.xlsx").mkdir(parents=True)
+    assert run("build", "--root", str(root), "--no-pdf") == 1
+    err = capsys.readouterr().err
+    assert "Error: cannot write ecc-gap-assessment.xlsx" in err
+    assert "Traceback" not in err
+
+
+def test_a_snapshots_folder_that_is_a_file_is_a_clear_error(root, capsys, monkeypatch):
+    monkeypatch.setattr(cli, "collect", fake_collect)
+    shutil.rmtree(root / "snapshots")
+    (root / "snapshots").write_text("not a folder", encoding="utf-8")
+    assert run("collect", "--root", str(root), "--label", "test") == 1
+    err = capsys.readouterr().err
+    assert "Error: cannot write snapshots" in err
+    assert "already exists. Choose another --label" not in err

@@ -34,6 +34,7 @@ TLS_FAILED = (
     "The TLS check on the Wazuh indexer failed. Set WAZUH_CA_CERT to the indexer's root-ca.pem "
     "and WAZUH_TLS_SERVER_NAME to wazuh.indexer, then retry."
 )
+INVALID_URL = "WAZUH_INDEXER_URL is not a valid URL."
 UNEXPECTED = "The Wazuh indexer sent an unexpected answer. Nothing was saved."
 PARTIAL = (
     "The Wazuh indexer gave a partial answer (timed out or failed shards). Wait until it has "
@@ -84,9 +85,12 @@ class IndexerSettings:
                 verify = ssl.create_default_context(cafile=self.ca_cert)
             except OSError as error:
                 raise CollectError("WAZUH_CA_CERT points to a file that cannot be read.") from error
-        return httpx.Client(
-            base_url=self.url, auth=(self.user, self.password), verify=verify, timeout=30.0
-        )
+        try:
+            return httpx.Client(
+                base_url=self.url, auth=(self.user, self.password), verify=verify, timeout=30.0
+            )
+        except httpx.InvalidURL as error:
+            raise CollectError(INVALID_URL) from error
 
 
 def tls_failure(error: BaseException) -> bool:
@@ -119,6 +123,8 @@ class Indexer:
                 hint = " Check WAZUH_INDEXER_USER and WAZUH_INDEXER_PASSWORD."
             message = f"The Wazuh indexer answered HTTP {code} for {path}.{hint}"
             raise CollectError(message) from error
+        except httpx.InvalidURL as error:
+            raise CollectError(INVALID_URL) from error
         except httpx.HTTPError as error:
             raise CollectError(TLS_FAILED if tls_failure(error) else UNREACHABLE) from error
         try:
@@ -134,6 +140,7 @@ class Indexer:
 
     def count(self, index: str, query: dict[str, Any]) -> int:
         answer = self._post(f"/{index}/_count", {"query": query})
+        reject_partial(answer)
         try:
             return int(answer["count"])
         except (KeyError, TypeError, ValueError) as error:
@@ -195,7 +202,10 @@ def find_agent(indexer: Indexer, requested: str | None) -> str:
     answer = indexer.search(ALERTS_INDEX, body)
     reject_partial(answer)
     buckets = nested(answer, "aggregations", "agents", "buckets") or []
-    names = sorted(str(bucket["key"]) for bucket in buckets)
+    try:
+        names = sorted(str(bucket["key"]) for bucket in buckets)
+    except (KeyError, TypeError) as error:
+        raise CollectError(UNEXPECTED) from error
     if requested is not None:
         if requested not in names:
             raise CollectError("The agent given with --agent has no SCA results.")

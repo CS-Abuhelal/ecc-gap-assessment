@@ -82,3 +82,21 @@ def test_a_broken_snapshot_names_the_file(root: Path):
     (root / "snapshots" / "2026-10-baseline.json").write_text("{", encoding="utf-8")
     with pytest.raises(DataError, match="2026-10-baseline.json"):
         load_snapshots(root / "snapshots")
+
+
+def test_every_broken_file_is_reported_together(root: Path):
+    (root / "data" / "risks.yaml").unlink()
+    (root / "data" / "mapping.yaml").write_text("rules: [", encoding="utf-8")
+    with pytest.raises(DataError) as caught:
+        load_dataset(root)
+    assert "mapping.yaml" in str(caught.value)
+    assert "risks.yaml" in str(caught.value)
+
+
+def test_every_broken_snapshot_is_reported_together(root: Path):
+    for name in ("2026-10-baseline.json", "2026-10-after.json"):
+        (root / "snapshots" / name).write_text("{", encoding="utf-8")
+    with pytest.raises(DataError) as caught:
+        load_snapshots(root / "snapshots")
+    assert "2026-10-baseline.json" in str(caught.value)
+    assert "2026-10-after.json" in str(caught.value)

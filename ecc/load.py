@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypeVar
@@ -77,16 +78,26 @@ def load_catalog(path: Path) -> tuple[Control, ...]:
 
 
 def load_dataset(root: Path) -> Dataset:
+    """Read all six data files; if any are broken, report every one of them together."""
     data = root / "data"
-    return Dataset(
-        root=root,
-        catalog=load_catalog(data / "catalog.yaml"),
-        policy=load_model(CisPolicy, data / "cis_checks.yaml"),
-        mapping=load_model(Mapping, data / "mapping.yaml"),
-        evidence=load_model(Evidence, data / "evidence.yaml"),
-        applicability=load_model(Applicability, data / "applicability.yaml"),
-        risks=load_model(RiskRegister, data / "risks.yaml"),
-    )
+    readers: dict[str, Callable[[], Any]] = {
+        "catalog": lambda: load_catalog(data / "catalog.yaml"),
+        "policy": lambda: load_model(CisPolicy, data / "cis_checks.yaml"),
+        "mapping": lambda: load_model(Mapping, data / "mapping.yaml"),
+        "evidence": lambda: load_model(Evidence, data / "evidence.yaml"),
+        "applicability": lambda: load_model(Applicability, data / "applicability.yaml"),
+        "risks": lambda: load_model(RiskRegister, data / "risks.yaml"),
+    }
+    loaded: dict[str, Any] = {}
+    errors: list[str] = []
+    for name, read in readers.items():
+        try:
+            loaded[name] = read()
+        except DataError as error:
+            errors.append(str(error))
+    if errors:
+        raise DataError("\n".join(errors))
+    return Dataset(root=root, **loaded)
 
 
 def load_snapshot(path: Path) -> Snapshot:
@@ -99,5 +110,13 @@ def load_snapshot(path: Path) -> Snapshot:
 def load_snapshots(directory: Path) -> list[Snapshot]:
     if not directory.is_dir():
         return []
-    snapshots = [load_snapshot(path) for path in sorted(directory.glob("*.json"))]
+    snapshots: list[Snapshot] = []
+    errors: list[str] = []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            snapshots.append(load_snapshot(path))
+        except DataError as error:
+            errors.append(str(error))
+    if errors:
+        raise DataError("\n".join(errors))
     return sorted(snapshots, key=lambda snapshot: snapshot.taken_at)

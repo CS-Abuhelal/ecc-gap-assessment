@@ -267,3 +267,24 @@ def test_an_agent_without_vulnerabilities_counts_zero():
     fake = FakeIndexer(vulnerabilities=[], vulnerability_total=5)
     counts = vulnerability_counts(fake.indexer(), "lab-agent")
     assert counts.model_dump() == {"critical": 0, "high": 0, "medium": 0, "low": 0}
+
+
+def test_an_invalid_url_is_a_clear_error():
+    with pytest.raises(CollectError, match="not a valid URL"):
+        IndexerSettings("https://x:abc", "admin", "not-a-real-password").client()
+
+
+def test_malformed_agent_buckets_are_an_error():
+    answer = {**page([]), "aggregations": {"agents": {"buckets": [{}]}}}
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=answer))
+    indexer = Indexer(httpx.Client(transport=transport, base_url=BASE_URL))
+    with pytest.raises(CollectError, match="unexpected answer"):
+        find_agent(indexer, None)
+
+
+def test_a_partial_count_is_an_error():
+    answer = {"count": 0, "_shards": {"total": 2, "successful": 1, "failed": 1}}
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=answer))
+    indexer = Indexer(httpx.Client(transport=transport, base_url=BASE_URL))
+    with pytest.raises(CollectError, match="partial answer"):
+        indexer.count("wazuh-alerts-*", {"match_all": {}})

@@ -64,9 +64,13 @@ def main(
     except (DataError, CollectError, PrivacyError, PdfError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
-    except FileExistsError as error:
-        name = Path(str(error.filename)).name
-        print(f"Error: {name} already exists. Choose another --label.", file=sys.stderr)
+    except OSError as error:
+        name = Path(error.filename).name if error.filename else "a file"
+        reason = error.strerror or error
+        print(
+            f"Error: cannot write {name} ({reason}). Close it if it is open, then retry.",
+            file=sys.stderr,
+        )
         return 1
 
 
@@ -79,7 +83,13 @@ def run_collect(
         indexer = Indexer(client, settings.server_name)
         collected = collect(indexer, policy, args.label, now, args.agent)
     path = snapshot_path(root / "snapshots", collected.snapshot)
-    write_snapshot(collected.snapshot, path, forbidden_terms(env, extra=[collected.agent]))
+    try:
+        write_snapshot(collected.snapshot, path, forbidden_terms(env, extra=[collected.agent]))
+    except FileExistsError as error:
+        if not path.is_file():
+            raise  # the snapshots folder itself is in the way; main reports it
+        message = f"snapshots/{path.name} already exists. Choose another --label."
+        raise CollectError(message) from error
     counts = Counter(check.result for check in collected.snapshot.checks)
     print(
         f"Wrote snapshots/{path.name}: {counts['passed']} passed, {counts['failed']} failed, "
@@ -127,17 +137,19 @@ def run_build(root: Path, args: argparse.Namespace, env: Mapping[str, str]) -> i
         return 1
     after = assess(dataset, pick(snapshots, args.after) if args.after else snapshots[-1])
     before = assess(dataset, pick(snapshots, args.before)) if args.before else None
-    out = root / "build"
-    out.mkdir(exist_ok=True)
-    write_workbook(out / WORKBOOK, dataset, after, before)
-    (out / PAGE).write_text(render_html(dataset, after, before), encoding="utf-8")
-    built = [WORKBOOK, PAGE]
+    browser = None
     if not args.no_pdf:
         browser = find_browser(env)
         if browser is None:
             raise PdfError(
                 "Chrome or Edge was not found. Set CHROME to the browser's path, or use --no-pdf."
             )
+    out = root / "build"
+    out.mkdir(exist_ok=True)
+    write_workbook(out / WORKBOOK, dataset, after, before)
+    (out / PAGE).write_text(render_html(dataset, after, before), encoding="utf-8")
+    built = [WORKBOOK, PAGE]
+    if browser is not None:
         write_pdf(out / PAGE, out / PDF, browser)
         built.append(PDF)
     names = ", ".join(f"build/{name}" for name in built)
