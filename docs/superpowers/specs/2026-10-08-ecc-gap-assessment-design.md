@@ -68,8 +68,9 @@ openpyxl, Jinja2.
 ### 4.1 Repository layout
 
 ```
-ecc/                 package: collect.py, privacy.py, models.py, assess.py,
-                     facts.py, validate.py, excel.py, html.py, cli.py
+ecc/                 package: models.py, load.py, mapping.py, facts.py, assess.py,
+                     validate.py, risk.py, privacy.py, collect.py, excel.py, html.py, cli.py
+tools/               one-off generators: extract_catalog.py, gen_cis_checks.py
 ecc/templates/       Jinja2 templates for the web page and the PDF
 data/                catalog.yaml, cis_checks.yaml, mapping.yaml, evidence.yaml,
                      applicability.yaml, risks.yaml
@@ -114,7 +115,7 @@ rules:               # matched on the CIS id; the longest match wins
   - cis: "17"        # Advanced Audit Policy
     ecc: ["2-12-3"]
     why: "Audit policy turns on the event logs ECC requires (2.12.3.1, 2.12.3.2)."
-  - cis: "18.10.43"  # Microsoft Defender Antivirus
+  - cis: "18.10.42"  # Microsoft Defender Antivirus
     ecc: ["2-3-3"]
     why: "Malware protection on workstations (2.3.3.1)."
   - cis: "18.10.7.1" # one check: Disallow Autoplay for non-volume devices
@@ -173,7 +174,10 @@ SENTINEL's `latest_checks`. Vulnerability counts come from `wazuh-states-vulnera
 `oldest_alert` is the earliest alert from the agent in `wazuh-alerts-*`; `agent_active`
 means the agent sent at least one alert in the last 24 hours.
 Connection settings use SENTINEL's variable names: `WAZUH_INDEXER_URL`,
-`WAZUH_INDEXER_USER`, `WAZUH_INDEXER_PASSWORD`.
+`WAZUH_INDEXER_USER`, `WAZUH_INDEXER_PASSWORD`, `WAZUH_CA_CERT`. Because the indexer's
+certificate is issued to `wazuh.indexer` while `collect` runs on the host against
+`127.0.0.1`, `WAZUH_TLS_SERVER_NAME=wazuh.indexer` sets the TLS server name; certificate
+checking stays on.
 
 ### 6.2 Named facts
 - `vulnerabilities`: no critical and no high open → Implemented; no critical → Partially;
