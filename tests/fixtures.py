@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
@@ -164,7 +165,7 @@ BASELINE = {
 }
 
 AFTER = {
-    **BASELINE,
+    **copy.deepcopy(BASELINE),
     "label": "after",
     "taken_at": "2026-10-20T18:00:00Z",
     "checks": [

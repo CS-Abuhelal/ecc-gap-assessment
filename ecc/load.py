@@ -43,6 +43,8 @@ def read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as error:
         raise DataError(f"{path.name}: cannot read the file ({error.strerror}).") from error
+    except UnicodeDecodeError as error:
+        raise DataError(f"{path.name}: not UTF-8 text ({error.reason}).") from error
 
 
 def load_model(model: type[ModelT], path: Path) -> ModelT:

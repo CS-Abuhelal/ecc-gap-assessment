@@ -60,5 +60,25 @@ def test_a_snapshot_with_extra_data_is_rejected(root: Path):
     path = root / "snapshots" / "2026-10-baseline.json"
     text = path.read_text(encoding="utf-8")
     path.write_text(text.replace('"host"', '"agent_ip": "10.0.0.5", "host"'), encoding="utf-8")
+    with pytest.raises(DataError, match="2026-10-baseline.json") as caught:
+        load_snapshots(root / "snapshots")
+    assert "agent_ip" in str(caught.value)
+
+
+def test_non_utf8_files_name_the_file(root: Path):
+    (root / "data" / "risks.yaml").write_bytes("risks: []".encode("utf-16"))
+    with pytest.raises(DataError, match="risks.yaml: not UTF-8 text"):
+        load_dataset(root)
+
+
+def test_a_non_utf8_snapshot_names_the_file(root: Path):
+    path = root / "snapshots" / "2026-10-baseline.json"
+    path.write_bytes(path.read_text(encoding="utf-8").encode("utf-16"))
+    with pytest.raises(DataError, match="2026-10-baseline.json: not UTF-8 text"):
+        load_snapshots(root / "snapshots")
+
+
+def test_a_broken_snapshot_names_the_file(root: Path):
+    (root / "snapshots" / "2026-10-baseline.json").write_text("{", encoding="utf-8")
     with pytest.raises(DataError, match="2026-10-baseline.json"):
         load_snapshots(root / "snapshots")
