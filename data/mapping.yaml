@@ -1,0 +1,178 @@
+# CIS Microsoft Windows 11 Enterprise Benchmark v3.0.0 (Wazuh policy cis_win11_enterprise)
+# mapped to NCA ECC-2:2024 main controls. The longest matching CIS id wins; matching
+# works on whole dot-separated parts, so "1.1" matches "1.1.3" but not "1.10.1".
+rules:
+  # 1 Account Policies
+  - cis: "1"
+    ecc: ["2-2-3"]
+    why: "Password and lockout rules protect username-and-password sign-in (2.2.3.1)."
+
+  # 2 Local Policies: Security Options
+  - cis: "2"
+    ecc: ["2-3-2"]
+    why: "Security options harden the workstation, part of implementing 2-3 protection requirements."
+  - cis: "2.3.1"
+    ecc: ["2-2-3"]
+    why: "Account options (guest account, blank passwords, Microsoft accounts) govern who can sign in (2.2.3.1)."
+  - cis: "2.3.2"
+    ecc: ["2-12-3"]
+    why: "Audit options make sure security events are actually logged (2.12.3.1)."
+  - cis: "2.3.7"
+    ecc: ["2-2-3"]
+    why: "Interactive logon settings (screen lock, sign-in prompts) protect local sign-in (2.2.3.1)."
+  - cis: "2.3.8"
+    ecc: ["2-5-3"]
+    why: "SMB client signing restricts how the workstation uses network protocols (2.5.3.5)."
+  - cis: "2.3.9"
+    ecc: ["2-5-3"]
+    why: "SMB server settings restrict the network services the workstation offers (2.5.3.5)."
+  - cis: "2.3.10"
+    ecc: ["2-5-3"]
+    why: "Network access rules block anonymous enumeration and share access (2.5.3.5)."
+  - cis: "2.3.11"
+    ecc: ["2-2-3"]
+    why: "Network security settings choose the authentication protocols (NTLM, Kerberos) (2.2.3.1)."
+  - cis: "2.3.17"
+    ecc: ["2-2-3"]
+    why: "User Account Control limits use of administrator rights (2.2.3.4 privileged access)."
+
+  # 5 System Services
+  - cis: "5"
+    ecc: ["2-5-3"]
+    why: "Disabling unneeded services reduces the network services and ports exposed (2.5.3.5)."
+
+  # 9 Windows Defender Firewall
+  - cis: "9"
+    ecc: ["2-5-3"]
+    why: "The host firewall controls inbound connections and network isolation (2.5.3.1, 2.5.3.5)."
+  - {cis: "9.1.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (domain profile) is a security event log (2.12.3.1)."}
+  - {cis: "9.1.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (domain profile) keeps enough history (2.12.3.1)."}
+  - {cis: "9.1.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (domain profile) records blocked traffic (2.12.3.1)."}
+  - {cis: "9.1.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (domain profile) records network activity (2.12.3.1)."}
+  - {cis: "9.2.4", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (private profile) is a security event log (2.12.3.1)."}
+  - {cis: "9.2.5", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (private profile) keeps enough history (2.12.3.1)."}
+  - {cis: "9.2.6", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (private profile) records blocked traffic (2.12.3.1)."}
+  - {cis: "9.2.7", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (private profile) records network activity (2.12.3.1)."}
+  - {cis: "9.3.6", ecc: ["2-5-3", "2-12-3"], why: "Firewall log file (public profile) is a security event log (2.12.3.1)."}
+  - {cis: "9.3.7", ecc: ["2-5-3", "2-12-3"], why: "Firewall log size (public profile) keeps enough history (2.12.3.1)."}
+  - {cis: "9.3.8", ecc: ["2-5-3", "2-12-3"], why: "Logging dropped packets (public profile) records blocked traffic (2.12.3.1)."}
+  - {cis: "9.3.9", ecc: ["2-5-3", "2-12-3"], why: "Logging allowed connections (public profile) records network activity (2.12.3.1)."}
+
+  # 17 Advanced Audit Policy
+  - cis: "17"
+    ecc: ["2-12-3"]
+    why: "Audit policy turns on the security event logs ECC requires (2.12.3.1, 2.12.3.2)."
+
+  # 18 Administrative Templates (Computer)
+  - cis: "18"
+    ecc: ["2-3-2"]
+    why: "Administrative template settings harden the workstation, part of implementing 2-3."
+  - {cis: "18.4.3", ecc: ["2-5-3"], why: "Disabling the SMBv1 client removes an insecure network protocol (2.5.3.5)."}
+  - {cis: "18.4.4", ecc: ["2-5-3"], why: "Disabling the SMBv1 server removes an insecure network protocol (2.5.3.5)."}
+  - cis: "18.5"
+    ecc: ["2-5-3"]
+    why: "MSS settings harden the TCP/IP and NetBIOS network stack (2.5.3.5)."
+  - {cis: "18.5.1", ecc: ["2-2-3"], why: "Automatic logon would bypass sign-in entirely (2.2.3.1)."}
+  - {cis: "18.5.4", ecc: ["2-2-3"], why: "Saved dial-up passwords weaken password-based sign-in (2.2.3.1)."}
+  - {cis: "18.5.9", ecc: ["2-3-2"], why: "Safe DLL search mode hardens how programs load code."}
+  - {cis: "18.5.10", ecc: ["2-2-3"], why: "The screen saver grace period decides how fast a locked screen needs a password (2.2.3.1)."}
+  - {cis: "18.5.13", ecc: ["2-12-3"], why: "A warning before the security log fills up protects event logs (2.12.3.1)."}
+  - cis: "18.6"
+    ecc: ["2-5-3"]
+    why: "Network settings cover DNS over HTTPS, guest logons, bridges and wireless (2.5.3.4, 2.5.3.5, 2.5.3.7)."
+  - cis: "18.9.3"
+    ecc: ["2-12-3"]
+    why: "Recording command lines in process creation events improves monitoring (2.12.3.1)."
+  - cis: "18.9.4"
+    ecc: ["2-2-3"]
+    why: "Credential delegation settings protect credentials used for remote sign-in (2.2.3.2)."
+  - cis: "18.9.7"
+    ecc: ["2-3-3"]
+    why: "Device installation restrictions limit what hardware, including external media, can be attached (2.3.3.2)."
+  - cis: "18.9.13"
+    ecc: ["2-3-3"]
+    why: "Early Launch Antimalware protects the boot process from malicious drivers (2.3.3.1)."
+  - cis: "18.9.25"
+    ecc: ["2-2-3"]
+    why: "LAPS manages the local administrator password (2.2.3.4 privileged access)."
+  - cis: "18.9.26"
+    ecc: ["2-2-3"]
+    why: "Protecting LSASS keeps stored sign-in credentials from being stolen (2.2.3.1)."
+  - cis: "18.9.28"
+    ecc: ["2-2-3"]
+    why: "Logon settings control which sign-in methods are allowed (2.2.3.1)."
+  - cis: "18.9.33"
+    ecc: ["2-2-3"]
+    why: "Power settings require a password when the computer wakes (2.2.3.1)."
+  - cis: "18.9.35"
+    ecc: ["2-5-3"]
+    why: "Remote Assistance is a remote access service that should be restricted (2.5.3.5)."
+  - cis: "18.9.36"
+    ecc: ["2-5-3"]
+    why: "RPC settings restrict unauthenticated network RPC clients (2.5.3.5)."
+  - cis: "18.9.51"
+    ecc: ["2-3-3"]
+    why: "The Windows NTP client keeps the clock synchronised with a trusted source (2.3.3.4)."
+  - cis: "18.10.7"
+    ecc: ["2-3-3"]
+    why: "Turning off AutoPlay restricts external storage media (2.3.3.2)."
+  - cis: "18.10.8"
+    ecc: ["2-2-3"]
+    why: "Anti-spoofing for facial recognition protects biometric sign-in (2.2.3.1)."
+  - cis: "18.10.9"
+    ecc: ["2-8-3"]
+    why: "BitLocker encrypts data at rest (2.8.3.3)."
+  - cis: "18.10.9.3"
+    ecc: ["2-8-3", "2-3-3"]
+    why: "BitLocker on removable drives encrypts data and restricts external media (2.8.3.3, 2.3.3.2)."
+  - cis: "18.10.14"
+    ecc: ["2-2-3"]
+    why: "Credential UI settings stop passwords and admin accounts from being revealed (2.2.3.1)."
+  - cis: "18.10.15"
+    ecc: ["2-7-2"]
+    why: "Limiting diagnostic data sent to the vendor protects the entity's data (2-7)."
+  - cis: "18.10.25"
+    ecc: ["2-12-3"]
+    why: "Event log size and retention settings keep security events available (2.12.3.1, 2.12.3.5)."
+  - cis: "18.10.41"
+    ecc: ["2-2-3"]
+    why: "Blocking consumer Microsoft account sign-in keeps identities under the entity's control (2.2.3.1)."
+  - cis: "18.10.42"
+    ecc: ["2-3-3"]
+    why: "Microsoft Defender Antivirus protects the workstation from malware (2.3.3.1)."
+  - cis: "18.10.43"
+    ecc: ["2-3-3"]
+    why: "Defender Application Guard isolates untrusted browsing from the system (2.3.3.1)."
+  - cis: "18.10.50"
+    ecc: ["2-7-2"]
+    why: "Blocking OneDrive file storage stops data leaving to unmanaged cloud storage (2-7)."
+  - cis: "18.10.56"
+    ecc: ["2-5-3"]
+    why: "Remote Desktop Services settings restrict and secure remote access (2.5.3.5)."
+  - cis: "18.10.75"
+    ecc: ["2-5-3"]
+    why: "Phishing protection and SmartScreen secure web browsing (2.5.3.3, 2.5.3.8)."
+  - cis: "18.10.81"
+    ecc: ["2-2-3"]
+    why: "Logon options stop automatic sign-in after a restart (2.2.3.1)."
+  - cis: "18.10.86"
+    ecc: ["2-12-3"]
+    why: "PowerShell script block logging and transcription record script activity (2.12.3.1)."
+  - cis: "18.10.88"
+    ecc: ["2-5-3"]
+    why: "WinRM settings block basic authentication and unencrypted remote management (2.5.3.5)."
+  - cis: "18.10.89"
+    ecc: ["2-5-3"]
+    why: "Turning off Remote Shell restricts remote command execution (2.5.3.5)."
+  - cis: "18.10.91"
+    ecc: ["2-3-3"]
+    why: "Stopping users from changing Windows Security settings keeps malware protection on (2.3.3.1)."
+  - cis: "18.10.92"
+    ecc: ["2-3-3"]
+    why: "Windows Update settings keep the system patched (2.3.3.3)."
+
+facts:
+  - fact: vulnerabilities
+    ecc: ["2-10-3"]
+  - fact: log_retention
+    ecc: ["2-12-3"]
