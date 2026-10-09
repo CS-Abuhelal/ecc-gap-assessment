@@ -12,6 +12,7 @@
   --ok: #1e7f4f; --ok-bg: #dff3e7; --part: #8a6100; --part-bg: #fff1c7;
   --gap: #b42318; --gap-bg: #fde3e1; --na: #5b6475; --na-bg: #eceef2;
   --low: #dff3e7; --medium: #fff1c7; --high: #fdd9b5; --critical: #f9c0bb;
+  --link: #1d4ed8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -19,6 +20,7 @@
     --ok: #7dd3a4; --ok-bg: #173826; --part: #f2c94c; --part-bg: #3a2f10;
     --gap: #f59a92; --gap-bg: #44201d; --na: #a0a8b8; --na-bg: #262b34;
     --low: #173826; --medium: #3a2f10; --high: #4a2c12; --critical: #4d1f1c;
+    --link: #8ab4f8;
   }
 }
 * { box-sizing: border-box; }
@@ -58,6 +60,8 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 .medium { background: var(--medium); }
 .high { background: var(--high); }
 .critical { background: var(--critical); }
+a { color: var(--link); }
+.nowrap { white-space: nowrap; }
 .downloads a { margin-right: 16px; }
 @media print {
   @page { size: A4; margin: 16mm 14mm; }
@@ -156,7 +160,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
 <thead><tr><th>ID</th><th>Risk</th><th>Controls</th><th>Likelihood</th><th>Impact</th><th>Score</th><th>Rating</th><th>Treatment</th><th>Owner</th><th>Due</th><th>State</th></tr></thead>
 <tbody>
 {% for row in risks %}
-<tr><td>{{ row.risk.id }}</td><td>{{ row.risk.statement }}</td><td>{{ row.risk.controls|join(", ") }}</td><td>{{ row.risk.likelihood }}</td><td>{{ row.risk.impact }}</td><td>{{ row.score }}</td><td><span class="badge {{ rating_class[row.rating] }}">{{ row.rating }}</span></td><td>{{ row.risk.treatment }}</td><td>{{ row.risk.owner }}</td><td>{{ row.risk.due }}</td><td>{{ "Closed" if row.closed else "Open" }}</td></tr>
+<tr><td class="nowrap">{{ row.risk.id }}</td><td>{{ row.risk.statement }}</td><td>{{ row.risk.controls|join(", ") }}</td><td>{{ row.risk.likelihood }}</td><td>{{ row.risk.impact }}</td><td>{{ row.score }}</td><td><span class="badge {{ rating_class[row.rating] }}">{{ row.rating }}</span></td><td>{{ row.risk.treatment }}</td><td>{{ row.risk.owner }}</td><td class="nowrap">{{ row.risk.due }}</td><td>{{ "Closed" if row.closed else "Open" }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 
