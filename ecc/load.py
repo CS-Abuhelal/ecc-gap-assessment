@@ -19,6 +19,8 @@ from ecc.models import (
     Mapping,
     ReportText,
     RiskRegister,
+    SamaFramework,
+    SamaMapping,
     Snapshot,
 )
 
@@ -39,6 +41,8 @@ class Dataset:
     applicability: Applicability
     risks: RiskRegister
     report: ReportText
+    sama: SamaFramework
+    sama_mapping: SamaMapping
 
 
 def read_text(path: Path) -> str:
@@ -80,7 +84,7 @@ def load_catalog(path: Path) -> tuple[Control, ...]:
 
 
 def load_dataset(root: Path) -> Dataset:
-    """Read all seven data files; if any are broken, report every one of them together."""
+    """Read all nine data files; if any are broken, report every one of them together."""
     data = root / "data"
     readers: dict[str, Callable[[], Any]] = {
         "catalog": lambda: load_catalog(data / "catalog.yaml"),
@@ -90,6 +94,8 @@ def load_dataset(root: Path) -> Dataset:
         "applicability": lambda: load_model(Applicability, data / "applicability.yaml"),
         "risks": lambda: load_model(RiskRegister, data / "risks.yaml"),
         "report": lambda: load_model(ReportText, data / "report.yaml"),
+        "sama": lambda: load_model(SamaFramework, data / "sama_csf.yaml"),
+        "sama_mapping": lambda: load_model(SamaMapping, data / "sama_mapping.yaml"),
     }
     loaded: dict[str, Any] = {}
     errors: list[str] = []

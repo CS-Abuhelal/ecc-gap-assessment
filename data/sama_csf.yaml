@@ -1,0 +1,56 @@
+# SAMA Cyber Security Framework (Saudi Central Bank), structure only: domains, subdomains and the
+# maturity model. Titles as published in the SAMA Rulebook (rulebook.sama.gov.sa).
+framework: SAMA Cyber Security Framework
+source: https://rulebook.sama.gov.sa/en/node/3868
+domains:
+  - id: "3.1"
+    title: Cyber Security Leadership and Governance
+    subdomains:
+      - {id: "3.1.1", title: Cyber Security Governance}
+      - {id: "3.1.2", title: Cyber Security Strategy}
+      - {id: "3.1.3", title: Cyber Security Policy}
+      - {id: "3.1.4", title: Cyber Security Roles and Responsibilities}
+      - {id: "3.1.5", title: Cyber Security in Project Management}
+      - {id: "3.1.6", title: Cyber Security Awareness}
+      - {id: "3.1.7", title: Cyber Security Training}
+  - id: "3.2"
+    title: Cyber Security Risk Management and Compliance
+    subdomains:
+      - {id: "3.2.1", title: Cyber Security Risk Management}
+      - {id: "3.2.2", title: Regulatory Compliance}
+      - {id: "3.2.3", title: Compliance with (Inter)national Industry Standards}
+      - {id: "3.2.4", title: Cyber Security Review}
+      - {id: "3.2.5", title: Cyber Security Audits}
+  - id: "3.3"
+    title: Cyber Security Operations and Technology
+    subdomains:
+      - {id: "3.3.1", title: Human Resources}
+      - {id: "3.3.2", title: Physical Security}
+      - {id: "3.3.3", title: Asset Management}
+      - {id: "3.3.4", title: Cyber Security Architecture}
+      - {id: "3.3.5", title: Identity and Access Management}
+      - {id: "3.3.6", title: Application Security}
+      - {id: "3.3.7", title: Change Management}
+      - {id: "3.3.8", title: Infrastructure Security}
+      - {id: "3.3.9", title: Cryptography}
+      - {id: "3.3.10", title: Bring Your Own Device (BYOD)}
+      - {id: "3.3.11", title: Secure Disposal of Information Assets}
+      - {id: "3.3.12", title: Payment Systems}
+      - {id: "3.3.13", title: Electronic Banking Services}
+      - {id: "3.3.14", title: Cyber Security Event Management}
+      - {id: "3.3.15", title: Cyber Security Incident Management}
+      - {id: "3.3.16", title: Threat Management}
+      - {id: "3.3.17", title: Vulnerability Management}
+  - id: "3.4"
+    title: Third Party Cyber Security
+    subdomains:
+      - {id: "3.4.1", title: Contract and Vendor Management}
+      - {id: "3.4.2", title: Outsourcing}
+      - {id: "3.4.3", title: Cloud Computing}
+levels:
+  - {level: 0, name: Non-existent, meaning: "Controls are not in place and there is no documentation or awareness of them."}
+  - {level: 1, name: Ad-hoc, meaning: "Controls are partly defined and performed inconsistently."}
+  - {level: 2, name: Repeatable but informal, meaning: "Controls follow an unwritten but standard practice, without formally approved objectives."}
+  - {level: 3, name: Structured and formalized, meaning: "Controls are defined, approved and implemented in a structured way. SAMA expects at least this level."}
+  - {level: 4, name: Managed and measurable, meaning: "Control effectiveness is measured and evaluated periodically."}
+  - {level: 5, name: Adaptive, meaning: "Controls are continuously improved and benchmarked against peers."}

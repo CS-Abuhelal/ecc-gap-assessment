@@ -6,7 +6,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CONTROL_PATTERN = r"^[1-4]-\d{1,2}-\d{1,2}$"
 SUBDOMAIN_PATTERN = r"^[1-4]-\d{1,2}$"
@@ -175,6 +175,67 @@ class ReportText(Strict):
     executive_summary: tuple[Paragraph, ...] = Field(min_length=1)
     key_findings: tuple[Paragraph, ...] = ()
     limitations: tuple[Paragraph, ...] = ()
+
+
+SamaId = Annotated[str, Field(pattern=r"^3\.[1-4]\.\d{1,2}$")]
+
+
+class SamaSubdomain(Strict):
+    id: SamaId
+    title: Paragraph
+
+
+class SamaDomain(Strict):
+    id: str = Field(pattern=r"^3\.[1-4]$")
+    title: Paragraph
+    subdomains: tuple[SamaSubdomain, ...] = Field(min_length=1)
+
+
+class SamaLevel(Strict):
+    level: int = Field(ge=0, le=5)
+    name: Paragraph
+    meaning: Paragraph
+
+
+class SamaFramework(Strict):
+    """SAMA Cyber Security Framework structure: domains, subdomains and maturity levels."""
+
+    framework: Paragraph
+    source: Paragraph
+    domains: tuple[SamaDomain, ...] = Field(min_length=1)
+    levels: tuple[SamaLevel, ...] = Field(min_length=6, max_length=6)
+
+
+class SamaLink(Strict):
+    """A SAMA subdomain and the ECC controls whose ratings stand in for it.
+
+    `rating` overrides the derived score when the linked ECC control only partly matches the
+    subdomain; it must come with `rating_note` saying why.
+    """
+
+    subdomain: SamaId
+    ecc: tuple[ControlId, ...] = Field(min_length=1)
+    why: Paragraph
+    rating: Status | None = None
+    rating_note: Paragraph | None = None
+
+    @model_validator(mode="after")
+    def _override_is_explained(self) -> SamaLink:
+        if self.rating is Status.NOT_APPLICABLE:
+            raise ValueError("list subdomains that do not apply under not_applicable")
+        if (self.rating is None) != (self.rating_note is None):
+            raise ValueError("rating and rating_note must be given together")
+        return self
+
+
+class SamaExclusion(Strict):
+    subdomain: SamaId
+    reason: Paragraph
+
+
+class SamaMapping(Strict):
+    links: tuple[SamaLink, ...]
+    not_applicable: tuple[SamaExclusion, ...] = ()
 
 
 class CheckResult(Strict):

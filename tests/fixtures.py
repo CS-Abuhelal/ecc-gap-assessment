@@ -184,6 +184,65 @@ REPORT = {
     "limitations": ["All data here is made up."],
 }
 
+SAMA_CSF = {
+    "framework": "SAMA Cyber Security Framework",
+    "source": "https://example.test/sama",
+    "domains": [
+        {
+            "id": "3.1",
+            "title": "Cyber Security Leadership and Governance",
+            "subdomains": [
+                {"id": "3.1.3", "title": "Cyber Security Policy"},
+                {"id": "3.1.4", "title": "Cyber Security Roles and Responsibilities"},
+            ],
+        },
+        {
+            "id": "3.3",
+            "title": "Cyber Security Operations and Technology",
+            "subdomains": [
+                {"id": "3.3.5", "title": "Identity and Access Management"},
+                {"id": "3.3.12", "title": "Payment Systems"},
+                {"id": "3.3.14", "title": "Cyber Security Event Management"},
+            ],
+        },
+        {
+            "id": "3.4",
+            "title": "Third Party Cyber Security",
+            "subdomains": [{"id": "3.4.3", "title": "Cloud Computing"}],
+        },
+    ],
+    "levels": [
+        {"level": n, "name": name, "meaning": f"Level {n}."}
+        for n, name in enumerate(
+            [
+                "Non-existent",
+                "Ad-hoc",
+                "Repeatable but informal",
+                "Structured and formalized",
+                "Managed and measurable",
+                "Adaptive",
+            ]
+        )
+    ],
+}
+
+SAMA_MAPPING = {
+    "links": [
+        {"subdomain": "3.1.3", "ecc": ["1-3-1"], "why": "Policies."},
+        {
+            "subdomain": "3.1.4",
+            "ecc": ["1-3-1"],
+            "why": "Roles are part of the policy.",
+            "rating": "Not implemented",
+            "rating_note": "Roles are not written down.",
+        },
+        {"subdomain": "3.3.5", "ecc": ["2-2-1", "2-2-3"], "why": "Access management."},
+        {"subdomain": "3.3.14", "ecc": ["2-12-3"], "why": "Event logs."},
+        {"subdomain": "3.4.3", "ecc": ["4-2-1"], "why": "Cloud."},
+    ],
+    "not_applicable": [{"subdomain": "3.3.12", "reason": "Example Co runs no payment systems."}],
+}
+
 DATA_FILES = {
     "catalog.yaml": CATALOG,
     "cis_checks.yaml": CIS_CHECKS,
@@ -192,6 +251,8 @@ DATA_FILES = {
     "applicability.yaml": APPLICABILITY,
     "risks.yaml": RISKS,
     "report.yaml": REPORT,
+    "sama_csf.yaml": SAMA_CSF,
+    "sama_mapping.yaml": SAMA_MAPPING,
 }
 
 

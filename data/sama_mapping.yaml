@@ -1,0 +1,111 @@
+# Crosswalk from SAMA Cyber Security Framework subdomains to NCA ECC-2:2024 main controls. Each
+# SAMA subdomain is either linked to the ECC controls that cover the same requirements or marked
+# not applicable to Rimal Byte (fictional). The SAMA view reuses the ECC ratings; it is indicative,
+# because Rimal Byte is not regulated by SAMA. ECC 3-1 (business continuity) has no SAMA CSF
+# counterpart: SAMA covers continuity in a separate framework.
+links:
+  - subdomain: "3.1.1"
+    ecc: [1-2-1, 1-2-2, 1-2-3]
+    why: The cybersecurity function, its staffing and the supervisory committee (ECC 1-2) are the governance structure SAMA 3.1.1 requires.
+  - subdomain: "3.1.2"
+    ecc: [1-1-1, 1-1-2, 1-1-3]
+    why: Both frameworks require a documented, approved and reviewed cybersecurity strategy (ECC 1-1).
+  - subdomain: "3.1.3"
+    ecc: [1-3-1, 1-3-2, 1-3-3, 1-3-4]
+    why: Policies, their implementation, supporting standards and their review (ECC 1-3).
+  - subdomain: "3.1.4"
+    ecc: [1-4-1, 1-4-2]
+    why: Documented and reviewed cybersecurity roles and responsibilities (ECC 1-4).
+  - subdomain: "3.1.5"
+    ecc: [1-6-1, 1-6-4]
+    why: Cybersecurity requirements in project management and their review (ECC 1-6-1, 1-6-4).
+  - subdomain: "3.1.6"
+    ecc: [1-10-1, 1-10-2, 1-10-3, 1-10-5]
+    why: An approved, implemented and reviewed awareness program (ECC 1-10, except specialised training).
+  - subdomain: "3.1.7"
+    ecc: [1-10-4]
+    why: Specialised training for staff in cybersecurity-related roles (ECC 1-10-4).
+  - subdomain: "3.2.1"
+    ecc: [1-5-1, 1-5-2, 1-5-3, 1-5-4]
+    why: A documented, applied and reviewed risk management methodology (ECC 1-5).
+  - subdomain: "3.2.2"
+    ecc: [1-3-4]
+    why: >-
+      SAMA asks for a process that updates policies when regulations change; ECC 1-3-4 requires
+      policies to be reviewed when legislative and regulatory requirements change.
+  - subdomain: "3.2.4"
+    ecc: [1-8-1, 1-8-3, 2-11-1, 2-11-2, 2-11-3, 2-11-4]
+    why: >-
+      Periodic reviews with documented results reported to management (ECC 1-8-1, 1-8-3), and
+      the annual penetration tests SAMA 3.2.4 includes (ECC 2-11).
+  - subdomain: "3.2.5"
+    ecc: [1-8-2]
+    why: Audits by parties independent of the cybersecurity function (ECC 1-8-2).
+  - subdomain: "3.3.1"
+    ecc: [1-9-1, 1-9-2, 1-9-3, 1-9-4, 1-9-5, 1-9-6]
+    why: Security requirements before, during and after employment (ECC 1-9).
+  - subdomain: "3.3.2"
+    ecc: [2-14-1, 2-14-2, 2-14-3, 2-14-4]
+    why: Physical protection of information and technology assets (ECC 2-14).
+  - subdomain: "3.3.3"
+    ecc: [2-1-1, 2-1-2, 2-1-3, 2-1-4, 2-1-5, 2-1-6]
+    why: Asset inventory, acceptable use and classification (ECC 2-1).
+  - subdomain: "3.3.4"
+    ecc: [2-3-1, 2-5-1]
+    why: >-
+      ECC has no architecture control; its documented protection and network security
+      requirements (ECC 2-3-1, 2-5-1) are the closest match.
+  - subdomain: "3.3.5"
+    ecc: [2-2-1, 2-2-2, 2-2-3, 2-2-4]
+    why: Identity and access management requirements, their minimums and review (ECC 2-2).
+  - subdomain: "3.3.6"
+    ecc: [1-6-3]
+    why: Secure coding and security testing of software (ECC 1-6-3); ECC 2-15 does not apply to Rimal Byte.
+  - subdomain: "3.3.7"
+    ecc: [1-6-1, 1-6-2]
+    why: Cybersecurity requirements in change management, including hardening and vulnerability checks before go-live (ECC 1-6-1, 1-6-2).
+  - subdomain: "3.3.8"
+    ecc: [2-3-1, 2-3-2, 2-3-3, 2-3-4, 2-4-1, 2-4-2, 2-4-3, 2-4-4, 2-5-1, 2-5-2, 2-5-3, 2-5-4, 2-7-1, 2-7-2, 2-7-3, 2-9-1, 2-9-2, 2-9-3, 2-9-4]
+    why: >-
+      SAMA's infrastructure standards span hardening and malware protection, email gateways,
+      network segmentation, data protection and backup (ECC 2-3, 2-4, 2-5, 2-7, 2-9).
+  - subdomain: "3.3.9"
+    ecc: [2-8-1, 2-8-2, 2-8-3, 2-8-4]
+    why: Cryptography requirements and their review (ECC 2-8).
+  - subdomain: "3.3.10"
+    ecc: [2-6-1, 2-6-2, 2-6-3, 2-6-4]
+    why: Mobile device and BYOD security (ECC 2-6).
+  - subdomain: "3.3.11"
+    ecc: [2-14-3]
+    why: Secure destruction and re-use of assets holding classified information (ECC 2.14.3.4).
+    rating: Not implemented
+    rating_note: >-
+      ECC 2-14-3 is Partially implemented only for its access-control parts; old devices and
+      paper are not securely destroyed, so this subdomain is rated on its own.
+  - subdomain: "3.3.14"
+    ecc: [2-12-1, 2-12-2, 2-12-3, 2-12-4]
+    why: Event logging, collection, monitoring and retention (ECC 2-12).
+  - subdomain: "3.3.15"
+    ecc: [2-13-1, 2-13-2, 2-13-3, 2-13-4]
+    why: Incident response plans, classification and reporting (ECC 2-13).
+  - subdomain: "3.3.16"
+    ecc: [2-13-3]
+    why: Collecting and handling threat intelligence feeds (ECC 2.13.3.5).
+  - subdomain: "3.3.17"
+    ecc: [2-10-1, 2-10-2, 2-10-3, 2-10-4]
+    why: Vulnerability scanning, classification, remediation deadlines and patching (ECC 2-10).
+  - subdomain: "3.4.1"
+    ecc: [4-1-1, 4-1-2, 4-1-4]
+    why: Cybersecurity requirements in contracts with third parties (ECC 4-1).
+  - subdomain: "3.4.3"
+    ecc: [4-2-1, 4-2-2, 4-2-3, 4-2-4]
+    why: Cloud computing and hosting requirements (ECC 4-2).
+not_applicable:
+  - subdomain: "3.2.3"
+    reason: SAMA excludes this subdomain for member organisations that are not banks, and Rimal Byte is not a bank.
+  - subdomain: "3.3.12"
+    reason: Rimal Byte runs no payment systems.
+  - subdomain: "3.3.13"
+    reason: Rimal Byte offers no electronic banking services.
+  - subdomain: "3.4.2"
+    reason: Rimal Byte outsources no IT or cybersecurity services (ECC 4-1-3 does not apply).

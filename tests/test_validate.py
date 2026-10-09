@@ -15,6 +15,7 @@ from tests.fixtures import (
     EVIDENCE,
     MAPPING,
     RISKS,
+    SAMA_MAPPING,
     rewrite,
 )
 
@@ -279,3 +280,21 @@ def test_other_problems_are_reported(root, mutate, expected):
     found = problems(root)
     for message in expected:
         assert message.format(logging_document=logging_document(root)) in found
+
+
+def test_every_sama_subdomain_needs_a_link_or_a_reason(root):
+    mapping = copy.deepcopy(SAMA_MAPPING)
+    mapping["links"] = mapping["links"][1:]
+    mapping["links"].append({"subdomain": "3.4.9", "ecc": ["1-3-9"], "why": "Unknown."})
+    rewrite(root, "sama_mapping.yaml", mapping)
+    found = problems(root)
+    assert "sama_mapping.yaml: SAMA subdomains with no link or reason (1): 3.1.3" in found
+    assert "sama_mapping.yaml: unknown SAMA subdomains (1): 3.4.9" in found
+    assert "sama_mapping.yaml: unknown ECC controls (1): 1-3-9" in found
+
+
+def test_a_sama_subdomain_cannot_be_linked_twice(root):
+    mapping = copy.deepcopy(SAMA_MAPPING)
+    mapping["not_applicable"].append({"subdomain": "3.1.3", "reason": "Twice."})
+    rewrite(root, "sama_mapping.yaml", mapping)
+    assert "sama_mapping.yaml: subdomains linked twice (1): 3.1.3" in problems(root)

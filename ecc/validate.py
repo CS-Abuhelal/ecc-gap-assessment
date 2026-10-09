@@ -80,6 +80,20 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
     report("risks.yaml: risk ids used twice", duplicates(risk.id for risk in risks))
     report("risks.yaml: unknown ECC controls", sorted(covered - known))
 
+    sama_ids = [s.id for d in dataset.sama.domains for s in d.subdomains]
+    linked = [link.subdomain for link in dataset.sama_mapping.links]
+    excluded = [item.subdomain for item in dataset.sama_mapping.not_applicable]
+    report("sama_csf.yaml: subdomain ids used twice", duplicates(sama_ids))
+    unknown_sama = sorted(set(linked + excluded) - set(sama_ids))
+    report("sama_mapping.yaml: unknown SAMA subdomains", unknown_sama)
+    report("sama_mapping.yaml: subdomains linked twice", duplicates(linked + excluded))
+    report(
+        "sama_mapping.yaml: SAMA subdomains with no link or reason",
+        [s for s in sama_ids if s not in set(linked) | set(excluded)],
+    )
+    sama_targets = {c for link in dataset.sama_mapping.links for c in link.ecc}
+    report("sama_mapping.yaml: unknown ECC controls", sorted(sama_targets - known))
+
     report("snapshots: labels used twice", duplicates(s.label for s in snapshots))
     check_ids = {check.id for check in dataset.policy.checks}
     report(
