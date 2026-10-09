@@ -38,4 +38,15 @@ def test_the_sama_view():
     dataset, _, assessment = baseline_assessment()
     view = sama_view(dataset, assessment)
     assert len(view) == 32
-    assert level_counts(view) == {0: 10, 1: 10, 2: 8, 3: 0}
+    assert level_counts(view) == {0: 8, 1: 14, 2: 6, 3: 0}
+    destruction = next(item for item in view if item.subdomain.id == "3.3.11")
+    assert (destruction.score, destruction.level) == (0.0, 0)
+    assert destruction.note is not None
+
+
+def test_the_sama_finding_matches_the_view():
+    dataset, _, assessment = baseline_assessment()
+    counts = level_counts(sama_view(dataset, assessment))
+    finding = next(item for item in dataset.report.key_findings if "SAMA" in item)
+    assert counts[3] == 0
+    assert f"none of the {sum(counts.values())} applicable subdomains" in " ".join(finding.split())

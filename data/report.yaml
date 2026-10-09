@@ -32,7 +32,8 @@ key_findings:
     continuity plan (1-10, 2-11, 2-13, 3-1).
   - >-
     Mapped onto SAMA's Cyber Security Framework, none of the 28 applicable subdomains reaches
-    maturity Level 3, the minimum SAMA expects of the banks it regulates (indicative view).
+    maturity Level 3, the minimum SAMA expects of the organisations it regulates (indicative
+    view).
 limitations:
   - >-
     Rimal Byte is fictional. Its profile, policies and governance ratings were written for this
@@ -52,5 +53,6 @@ limitations:
   - >-
     The SAMA Cyber Security Framework view is indicative: Rimal Byte is not regulated by SAMA,
     and its maturity levels are derived from the ECC ratings by a stated rule rather than
-    assessed separately.
+    assessed separately. They show how much of the mapped ECC controls is in place, not SAMA's
+    own level criteria, so they are an upper bound.
   - Results describe one point in time, the baseline snapshot of 8 October 2026.

@@ -65,6 +65,11 @@ or paper.
   provider's and web host's terms cover none of these.
 - Client contracts include non-disclosure clauses.
 - Rimal Byte does not outsource IT or cybersecurity operations.
+- Some prospective clients are banks and finance companies regulated by the Saudi Central Bank
+  (SAMA). They expect suppliers to show alignment with SAMA's Cyber Security Framework, so the
+  assessment adds an indicative SAMA view.
+- Rimal Byte is not regulated by SAMA. It runs no payment systems, handles no card data, uses no
+  SWIFT services and offers no banking services.
 
 ## People practices
 
@@ -86,4 +91,6 @@ a schedule. Information is not classified or labelled.
 - **Technical evidence:** WS-01, measured by Wazuh: the CIS Microsoft Windows 11 Enterprise
   Benchmark v3.0.0 checks, open vulnerabilities and log retention.
 - **Documentary evidence:** the six policies in `docs/policies/`, approved on 5 October 2026.
+- **SAMA view:** an indicative crosswalk to the SAMA Cyber Security Framework, derived from the
+  ECC ratings (`data/sama_mapping.yaml`).
 - **Baseline:** the snapshot of 8 October 2026.

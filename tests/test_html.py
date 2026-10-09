@@ -6,7 +6,7 @@ import pytest
 
 from ecc.assess import assess
 from ecc.html import PdfError, find_browser, render_html, write_pdf
-from ecc.models import RiskRegister
+from ecc.models import RiskRegister, SamaExclusion
 
 BROWSER = find_browser(os.environ)
 
@@ -147,4 +147,17 @@ def test_the_report_shows_the_sama_view(dataset, after):
     assert "SAMA Cyber Security Framework view (indicative)" in html
     assert "<b>1 of 4 applicable subdomains reach Level 3</b>" in html
     assert "<td>3 Structured and formalized</td>" in html
+    assert "Level 2 at 50% or more with at least one Implemented" in html
     assert "Example Co runs no payment systems." in html
+    assert "<td>Not applicable</td>" in html
+    assert "so no level is derived.</span></td><td>4-2-1</td><td>n/a</td><td>n/a</td>" in html
+
+
+def test_sama_text_is_escaped(dataset, baseline):
+    mapping = dataset.sama_mapping.model_copy(
+        update={"not_applicable": (SamaExclusion(subdomain="3.3.12", reason="<i>No</i> cards."),)}
+    )
+    changed = dataclasses.replace(dataset, sama_mapping=mapping)
+    html = render_html(changed, assess(changed, baseline))
+    assert "&lt;i&gt;No&lt;/i&gt; cards." in html
+    assert "<i>No</i>" not in html

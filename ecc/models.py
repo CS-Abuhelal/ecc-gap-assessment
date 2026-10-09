@@ -190,6 +190,13 @@ class SamaDomain(Strict):
     title: Paragraph
     subdomains: tuple[SamaSubdomain, ...] = Field(min_length=1)
 
+    @model_validator(mode="after")
+    def _subdomains_belong_here(self) -> SamaDomain:
+        strays = [s.id for s in self.subdomains if not s.id.startswith(f"{self.id}.")]
+        if strays:
+            raise ValueError(f"subdomains outside domain {self.id}: {', '.join(strays)}")
+        return self
+
 
 class SamaLevel(Strict):
     level: int = Field(ge=0, le=5)
@@ -204,6 +211,12 @@ class SamaFramework(Strict):
     source: Paragraph
     domains: tuple[SamaDomain, ...] = Field(min_length=1)
     levels: tuple[SamaLevel, ...] = Field(min_length=6, max_length=6)
+
+    @model_validator(mode="after")
+    def _levels_are_0_to_5(self) -> SamaFramework:
+        if [level.level for level in self.levels] != list(range(6)):
+            raise ValueError("levels must be 0 to 5, each once, in order")
+        return self
 
 
 class SamaLink(Strict):

@@ -17,8 +17,10 @@ links:
     ecc: [1-4-1, 1-4-2]
     why: Documented and reviewed cybersecurity roles and responsibilities (ECC 1-4).
   - subdomain: "3.1.5"
-    ecc: [1-6-1, 1-6-4]
-    why: Cybersecurity requirements in project management and their review (ECC 1-6-1, 1-6-4).
+    ecc: [1-5-3, 1-6-1, 1-6-4]
+    why: >-
+      Cybersecurity requirements in project management and their review (ECC 1-6-1, 1-6-4), and
+      a risk assessment at the early stage of technology projects (ECC 1.5.3.1).
   - subdomain: "3.1.6"
     ecc: [1-10-1, 1-10-2, 1-10-3, 1-10-5]
     why: An approved, implemented and reviewed awareness program (ECC 1-10, except specialised training).
@@ -62,8 +64,11 @@ links:
     ecc: [1-6-3]
     why: Secure coding and security testing of software (ECC 1-6-3); ECC 2-15 does not apply to Rimal Byte.
   - subdomain: "3.3.7"
-    ecc: [1-6-1, 1-6-2]
-    why: Cybersecurity requirements in change management, including hardening and vulnerability checks before go-live (ECC 1-6-1, 1-6-2).
+    ecc: [1-5-3, 1-6-1, 1-6-2]
+    why: >-
+      Cybersecurity requirements in change management, including hardening and vulnerability
+      checks before go-live (ECC 1-6-1, 1-6-2), and a risk assessment before major changes to
+      technology infrastructure (ECC 1.5.3.2).
   - subdomain: "3.3.8"
     ecc: [2-3-1, 2-3-2, 2-3-3, 2-3-4, 2-4-1, 2-4-2, 2-4-3, 2-4-4, 2-5-1, 2-5-2, 2-5-3, 2-5-4, 2-7-1, 2-7-2, 2-7-3, 2-9-1, 2-9-2, 2-9-3, 2-9-4]
     why: >-
@@ -90,22 +95,36 @@ links:
     why: Incident response plans, classification and reporting (ECC 2-13).
   - subdomain: "3.3.16"
     ecc: [2-13-3]
-    why: Collecting and handling threat intelligence feeds (ECC 2.13.3.5).
+    why: >-
+      Collecting and handling threat intelligence feeds (ECC 2.13.3.5). Following NCA and vendor
+      security advisories is counted under 3.3.17 (ECC 2-10).
   - subdomain: "3.3.17"
     ecc: [2-10-1, 2-10-2, 2-10-3, 2-10-4]
     why: Vulnerability scanning, classification, remediation deadlines and patching (ECC 2-10).
   - subdomain: "3.4.1"
-    ecc: [4-1-1, 4-1-2, 4-1-4]
-    why: Cybersecurity requirements in contracts with third parties (ECC 4-1).
+    ecc: [1-5-3, 4-1-1, 4-1-2, 4-1-4]
+    why: >-
+      Cybersecurity requirements in contracts with third parties (ECC 4-1), and a risk
+      assessment when planning to obtain third-party services (ECC 1.5.3.3).
   - subdomain: "3.4.3"
     ecc: [4-2-1, 4-2-2, 4-2-3, 4-2-4]
     why: Cloud computing and hosting requirements (ECC 4-2).
 not_applicable:
   - subdomain: "3.2.3"
-    reason: SAMA excludes this subdomain for member organisations that are not banks, and Rimal Byte is not a bank.
+    reason: >-
+      This subdomain requires PCI DSS, EMV and the SWIFT Customer Security Controls Framework.
+      SAMA excludes it for member organisations that are not banks unless they handle card data
+      or SWIFT services; Rimal Byte is not a bank and handles neither.
   - subdomain: "3.3.12"
-    reason: Rimal Byte runs no payment systems.
+    reason: >-
+      Rimal Byte runs no payment systems. SAMA also excludes this subdomain for member
+      organisations that are not banks.
   - subdomain: "3.3.13"
-    reason: Rimal Byte offers no electronic banking services.
+    reason: >-
+      Rimal Byte offers no electronic banking services. SAMA also excludes this subdomain for
+      member organisations that are not banks.
   - subdomain: "3.4.2"
-    reason: Rimal Byte outsources no IT or cybersecurity services (ECC 4-1-3 does not apply).
+    reason: >-
+      Rimal Byte outsources no IT or cybersecurity services (ECC 4-1-3 does not apply). A bank
+      that buys Rimal Byte's managed IT support would cover Rimal Byte under the bank's own
+      outsourcing obligations in this subdomain.

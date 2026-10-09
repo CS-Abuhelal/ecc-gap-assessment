@@ -181,13 +181,13 @@ a { color: var(--link); }
 {% endif %}
 
 <h2>SAMA Cyber Security Framework view (indicative)</h2>
-<p class="note">SAMA's Cyber Security Framework applies to banks and other institutions regulated by the Saudi Central Bank; {{ report.company }} is not one. This view maps the ECC results onto SAMA's subdomains to show how the company would look to a bank client that expects SAMA alignment from its suppliers. Each subdomain's maturity comes from the ECC controls it maps to: Level 3 when all are Implemented, Level 2 at 50% or more, Level 1 above 0% and Level 0 otherwise. Levels 4 and 5 need measured control effectiveness and are not derived. SAMA expects at least Level 3.</p>
+<p class="note">SAMA's Cyber Security Framework applies to banks and other institutions regulated by the Saudi Central Bank; {{ report.company }} is not one. This view maps the ECC results onto SAMA's subdomains to show how the company would look to a bank client that expects SAMA alignment from its suppliers. Each subdomain's maturity comes from the ECC controls it maps to: Level 3 when all are Implemented, Level 2 at 50% or more with at least one Implemented, Level 1 above 0% and Level 0 otherwise. These levels show how much of the mapped ECC controls is in place, not SAMA's own level criteria, so they are an upper bound; Levels 4 and 5 need measured control effectiveness and are not derived. SAMA expects at least Level 3. The workbook's SAMA sheet gives the reason for each link.</p>
 <p><b>{{ sama_counts[3] }} of {{ sama_counts.values()|sum }} applicable subdomains reach Level 3</b> ({{ sama_counts[2] }} at Level 2, {{ sama_counts[1] }} at Level 1, {{ sama_counts[0] }} at Level 0).</p>
 <div class="table-wrap"><table>
 <thead><tr><th>SAMA</th><th>Subdomain</th><th>ECC controls</th><th>Compliance</th><th>Indicative maturity</th></tr></thead>
 <tbody>
 {% for item in sama %}
-<tr><td class="nowrap">{{ item.subdomain.id }}</td><td>{{ item.subdomain.title }}{% if item.note %}<br><span class="note">{{ item.note }}</span>{% endif %}</td><td>{{ item.ecc|join(", ") }}</td><td>{{ pct(item.score) if item.level is not none else "n/a" }}</td><td>{{ (item.level ~ " " ~ sama_levels[item.level]) if item.level is not none else "Not applicable" }}</td></tr>
+<tr><td class="nowrap">{{ item.subdomain.id }}</td><td>{{ item.subdomain.title }}{% if item.note %}<br><span class="note">{{ item.note }}</span>{% endif %}</td><td>{{ item.ecc|join(", ") }}</td><td>{{ pct(item.score) if item.level is not none else "n/a" }}</td><td>{{ (item.level ~ " " ~ sama_levels[item.level]) if item.level is not none else ("n/a" if item.ecc else "Not applicable") }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 

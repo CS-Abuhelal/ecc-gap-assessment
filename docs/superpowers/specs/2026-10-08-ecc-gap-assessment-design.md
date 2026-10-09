@@ -307,7 +307,14 @@ alignment from its suppliers.
   derived score with its own rating and a note when the ECC control only partly matches (used
   for 3.3.11 Secure Disposal).
 - Score: the ECC compliance of the linked controls. Indicative maturity: Level 3 when every
-  linked control is Implemented, 2 at 50% or more, 1 above 0%, 0 otherwise. Levels 4 and 5 need
-  measured control effectiveness and are not derived. SAMA expects at least Level 3.
-- Outputs: a "SAMA CSF view" workbook sheet and a report section, both labelled indicative.
+  linked control is Implemented, 2 at 50% or more with at least one Implemented, 1 above 0%, 0
+  otherwise. The levels show how much of the mapped ECC controls is in place, not SAMA's own
+  level criteria, so they are an upper bound. Levels 4 and 5 need measured control effectiveness
+  and are not derived. SAMA expects at least Level 3.
+- Outputs: a "SAMA CSF view (indicative)" workbook sheet, which also gives each link's reason,
+  and a report section, both labelled indicative.
+- Final review (2026-10-09): Level 2 originally needed only 50%, which put subdomains resting on
+  one Partially implemented control (3.1.7 Training, 3.2.2 Regulatory Compliance) at "Repeatable
+  but informal" against their own evidence; the rule now also needs an Implemented control. ECC
+  1-5-3 (risk assessment triggers) was added to 3.1.5, 3.3.7 and 3.4.1.
 - Plan: `docs/superpowers/plans/2026-10-09-ecc-plan-2b-sama.md`.

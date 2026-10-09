@@ -15,7 +15,7 @@ def values(sheet, row):
     return [cell.value for cell in sheet[row]]
 
 
-def test_the_workbook_has_five_sheets(tmp_path, dataset, after):
+def test_the_workbook_sheets(tmp_path, dataset, after):
     assert workbook(tmp_path, dataset, after).sheetnames == list(SHEETS)
 
 
@@ -116,8 +116,14 @@ def test_the_summary_names_the_company(tmp_path, dataset, after):
 
 
 def test_the_sama_sheet(tmp_path, dataset, baseline):
-    sheet = workbook(tmp_path, dataset, baseline)["SAMA CSF view"]
+    sheet = workbook(tmp_path, dataset, baseline)["SAMA CSF view (indicative)"]
+    assert values(sheet, 1)[4:7] == ["Why mapped", "Compliance %", "Indicative maturity"]
     rows = {row[0]: row for row in sheet.iter_rows(min_row=2, values_only=True)}
-    assert rows["3.3.5"][4:6] == (75.0, "2 Repeatable but informal")
-    assert rows["3.3.12"][4:7] == ("n/a", "n/a", "Example Co runs no payment systems.")
-    assert rows["3.1.4"][6] == "Roles are not written down."
+    assert rows["3.3.5"][3:7] == (
+        "2-2-1, 2-2-3",
+        "Access management.",
+        75.0,
+        "2 Repeatable but informal",
+    )
+    assert rows["3.3.12"][4:8] == (None, "n/a", "n/a", "Example Co runs no payment systems.")
+    assert rows["3.1.4"][7] == "Roles are not written down."
