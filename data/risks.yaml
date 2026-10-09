@@ -1,3 +1,264 @@
-# Risk register: at least one risk for every control rated Partially or Not implemented.
-# Filled in plan 2.
-risks: []
+# Risk register for Rimal Byte (fictional). Scales and bands are defined in
+# docs/policies/risk-management-method.md: likelihood and impact 1-5, score = likelihood x impact,
+# 1-4 Low, 5-9 Medium, 10-16 High, 20-25 Critical. Every gap in the assessment is covered.
+risks:
+  - id: R-01
+    controls: [1-1-1, 1-1-2, 1-1-3]
+    statement: >-
+      Without a cybersecurity strategy, security work is not prioritised or funded against
+      business goals, so known gaps stay open.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: General Manager
+    due: 2027-03-31
+  - id: R-02
+    controls: [1-2-1, 1-2-2, 1-2-3]
+    statement: >-
+      The only cybersecurity role is part-time, so incidents and compliance work go unhandled
+      when the Cybersecurity Lead is busy with engineering work.
+    likelihood: 4
+    impact: 3
+    treatment: mitigate
+    owner: General Manager
+    due: 2027-01-31
+  - id: R-03
+    controls: [1-3-2, 1-3-3, 1-3-4]
+    statement: >-
+      The new policies are not yet fully rolled out or backed by technical standards, so staff
+      and systems do not follow them consistently.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2026-12-31
+  - id: R-04
+    controls: [1-4-2]
+    statement: >-
+      Roles and responsibilities are not yet reviewed, so they may drift out of date as staff
+      change.
+    likelihood: 2
+    impact: 2
+    treatment: accept
+    owner: General Manager
+    due: 2027-10-31
+  - id: R-05
+    controls: [1-5-2, 1-5-3, 1-5-4]
+    statement: >-
+      Risk management is not yet routine, so new risks from projects, changes and suppliers can
+      be missed.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2027-01-31
+  - id: R-06
+    controls: [1-6-1, 1-6-2, 1-6-3, 1-6-4]
+    statement: >-
+      Software delivered to clients is built without secure coding standards or security
+      testing, which could lead to a client data breach and lost contracts.
+    likelihood: 4
+    impact: 4
+    treatment: mitigate
+    owner: Project Manager
+    due: 2027-01-31
+  - id: R-07
+    controls: [1-8-1, 1-8-2, 1-8-3]
+    statement: >-
+      Without regular and independent reviews, control weaknesses go unnoticed and compliance
+      claims in government tenders cannot be backed up.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: General Manager
+    due: 2027-06-30
+  - id: R-08
+    controls: [1-9-1, 1-9-2, 1-9-3, 1-9-4, 1-9-5, 1-9-6]
+    statement: >-
+      New staff are not vetted and leavers are offboarded informally, so an untrusted person
+      could gain or keep access to client data.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: HR Officer
+    due: 2026-12-31
+  - id: R-09
+    controls: [1-10-1, 1-10-2, 1-10-3, 1-10-4, 1-10-5]
+    statement: >-
+      Staff have no security awareness training, so a phishing email is likely to lead to a
+      compromised Microsoft 365 account.
+    likelihood: 4
+    impact: 4
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2026-12-15
+  - id: R-10
+    controls: [2-1-1, 2-1-2, 2-1-3, 2-1-4, 2-1-5, 2-1-6]
+    statement: >-
+      The asset list is incomplete and information is not classified, so unknown devices go
+      unpatched and sensitive data is handled like any other data.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-12-31
+  - id: R-11
+    controls: [2-2-2, 2-2-3, 2-2-4]
+    statement: >-
+      Weak workstation sign-in settings and no access reviews make account takeover easier and
+      let excess privileges build up.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-11-30
+  - id: R-12
+    controls: [2-3-1, 2-3-2, 2-3-3, 2-3-4]
+    statement: >-
+      Workstations fall well short of the CIS baseline, so malware and misuse are more likely to
+      succeed.
+    likelihood: 4
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-11-30
+  - id: R-13
+    controls: [2-4-1, 2-4-2, 2-4-3, 2-4-4]
+    statement: >-
+      Without DKIM, DMARC or protection beyond the defaults, attackers can spoof the company's
+      email domain and phishing is more likely to reach staff.
+    likelihood: 4
+    impact: 3
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-11-05
+  - id: R-14
+    controls: [2-5-1, 2-5-2, 2-5-3, 2-5-4]
+    statement: >-
+      A flat office network behind a consumer-grade firewall, with unneeded services running on
+      workstations, lets an attacker move from one device to others.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: IT Manager
+    due: 2027-01-31
+  - id: R-15
+    controls: [2-6-1, 2-6-2, 2-6-3, 2-6-4]
+    statement: >-
+      Company email and files on unmanaged personal phones are exposed when a phone is lost and
+      stay with staff after they leave.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: IT Manager
+    due: 2027-02-28
+  - id: R-16
+    controls: [2-7-1, 2-7-2, 2-7-3]
+    statement: >-
+      Without data protection rules, client data can leak through unmanaged cloud storage and
+      diagnostic data sent to vendors.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2027-02-28
+  - id: R-17
+    controls: [2-8-1, 2-8-2, 2-8-3, 2-8-4]
+    statement: >-
+      Laptops are not encrypted (Windows 11 Home has no full BitLocker), so a lost or stolen
+      laptop exposes client data.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-12-31
+  - id: R-18
+    controls: [2-9-1, 2-9-2, 2-9-3, 2-9-4]
+    statement: >-
+      Laptops are not backed up and recovery has never been tested, so ransomware or a disk
+      failure can destroy work.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-12-31
+  - id: R-19
+    controls: [2-10-2, 2-10-3, 2-10-4]
+    statement: >-
+      High-severity vulnerabilities stay open without tracked deadlines, leaving known ways in
+      for attackers.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2026-11-05
+  - id: R-20
+    controls: [2-11-1, 2-11-2, 2-11-3, 2-11-4]
+    statement: >-
+      Without penetration testing, exploitable weaknesses are more likely to be found by
+      attackers first.
+    likelihood: 2
+    impact: 3
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2027-06-30
+  - id: R-21
+    controls: [2-12-2, 2-12-3, 2-12-4]
+    statement: >-
+      Missing audit settings and only about 10 days of stored logs (ECC asks for 12 months) mean
+      an incident could not be investigated.
+    likelihood: 3
+    impact: 3
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2026-12-31
+  - id: R-22
+    controls: [2-13-1, 2-13-2, 2-13-3, 2-13-4]
+    statement: >-
+      Without an incident response plan, an attack would be handled slowly and inconsistently,
+      and required reporting to the NCA could be missed.
+    likelihood: 3
+    impact: 4
+    treatment: mitigate
+    owner: Cybersecurity Lead
+    due: 2026-12-31
+  - id: R-23
+    controls: [2-14-1, 2-14-2, 2-14-3, 2-14-4]
+    statement: >-
+      Devices could be stolen from the shared office, and old devices and paper are not securely
+      destroyed.
+    likelihood: 2
+    impact: 3
+    treatment: mitigate
+    owner: IT Manager
+    due: 2027-03-31
+  - id: R-24
+    controls: [3-1-1, 3-1-2, 3-1-3, 3-1-4]
+    statement: >-
+      With no continuity or disaster recovery plan, a ransomware attack could stop client
+      services for days.
+    likelihood: 2
+    impact: 5
+    treatment: mitigate
+    owner: General Manager
+    due: 2027-03-31
+  - id: R-25
+    controls: [4-1-1, 4-1-2, 4-1-4]
+    statement: >-
+      Supplier contracts have no security or incident clauses, so a supplier breach could expose
+      company data with no agreed response.
+    likelihood: 2
+    impact: 3
+    treatment: mitigate
+    owner: General Manager
+    due: 2027-03-31
+  - id: R-26
+    controls: [4-2-1, 4-2-2, 4-2-3, 4-2-4]
+    statement: >-
+      Microsoft 365 settings and data location are not governed by documented requirements, so
+      a misconfiguration could expose client data.
+    likelihood: 2
+    impact: 4
+    treatment: mitigate
+    owner: IT Manager
+    due: 2027-01-31
