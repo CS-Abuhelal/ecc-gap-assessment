@@ -13,7 +13,7 @@ executive_summary:
     rolled out, and there is no cybersecurity strategy, awareness program, incident response plan
     or business continuity plan yet.
   - >-
-    The largest gap is technical. Only 122 of the 473 applicable CIS benchmark checks pass on the
+    Workstation hardening is weak: only 122 of the 473 applicable CIS benchmark checks pass on the
     representative workstation (WS-01), and every technically measured control is a gap. The 26
     risks in the register are led by insecure software delivery, phishing without awareness
     training and weak workstation hardening. The roadmap starts with email authentication and the
@@ -40,4 +40,10 @@ limitations:
   - >-
     The CIS benchmark is written for Windows 11 Enterprise; some of its settings cannot be applied
     on the Home edition.
+  - >-
+    The CIS-to-ECC mapping is the author's judgment. Its rules for CIS sections 2 and 18 send
+    117 of the 482 checks (about 24%) to control 2-3-2.
+  - >-
+    The assessment was carried out by Rimal Byte's own Cybersecurity Lead as the first annual
+    review under ECC 1-8-1, so it is not an independent review (1-8-2).
   - Results describe one point in time, the baseline snapshot of 8 October 2026.

@@ -31,10 +31,16 @@ entries:
   # 1-3 Cybersecurity Policies and Procedures
   - control: 1-3-1
     status: Implemented
-    documents: [docs/policies/cybersecurity-policy.md]
+    documents:
+      - docs/policies/cybersecurity-policy.md
+      - docs/policies/roles-and-responsibilities.md
+      - docs/policies/risk-management-method.md
+      - docs/policies/access-control-policy.md
+      - docs/policies/vulnerability-management-policy.md
+      - docs/policies/logging-and-monitoring-policy.md
     note: >-
-      The cybersecurity policy and five topic policies are documented, approved by the General
-      Manager and shared with staff.
+      Six policies are documented, approved by the General Manager and published to all staff on
+      SharePoint; acknowledgments are being collected.
   - control: 1-3-2
     status: Partially implemented
     documents: [docs/policies/cybersecurity-policy.md]
@@ -95,8 +101,14 @@ entries:
   - {control: 1-8-3, status: Partially implemented, note: "This assessment's results go to the General Manager; the supervisory committee has not met to receive them."}
 
   # 1-9 Cybersecurity in Human Resources
-  - {control: 1-9-1, status: Not implemented, note: "No documented cybersecurity requirements for staff before, during or after employment."}
-  - {control: 1-9-2, status: Not implemented, note: "No personnel security requirements to implement."}
+  - control: 1-9-1
+    status: Not implemented
+    note: >-
+      Only fragments are documented (policy acknowledgment on joining, account removal on the
+      last day); there is no HR security policy covering screening, awareness or termination.
+  - control: 1-9-2
+    status: Not implemented
+    note: No HR security requirements are in place beyond those fragments.
   - {control: 1-9-3, status: Partially implemented, note: "Employment contracts include a confidentiality clause; there is no screening or vetting."}
   - control: 1-9-4
     status: Partially implemented
@@ -108,7 +120,7 @@ entries:
     note: >-
       In practice the IT Manager disables leavers' accounts without a checklist or record; the
       access control policy now requires a dated record.
-  - {control: 1-9-6, status: Not implemented, note: "No personnel security requirements to review."}
+  - {control: 1-9-6, status: Not implemented, note: "No HR security requirements to review."}
 
   # 1-10 Cybersecurity Awareness and Training Program
   - {control: 1-10-1, status: Not implemented, note: "No awareness program."}
@@ -217,8 +229,8 @@ entries:
     status: Partially implemented
     documents: [docs/policies/logging-and-monitoring-policy.md]
     note: >-
-      Wazuh collects workstation security events; not every system sends logs yet, and the daily
-      alert review the policy requires has not started.
+      Wazuh collects workstation security events; Microsoft 365 and the router do not send logs
+      yet, and the daily alert review the policy requires has not started.
   - control: 2-12-4
     status: Partially implemented
     documents: [docs/policies/logging-and-monitoring-policy.md]
@@ -247,8 +259,9 @@ entries:
   - control: 4-1-2
     status: Partially implemented
     note: >-
-      Client contracts include non-disclosure clauses; supplier contracts (internet provider, web
-      hosting) use the suppliers' standard terms, without incident or data-removal clauses.
+      Microsoft's standard terms include confidentiality, data deletion at the end of service and
+      incident notification; the internet provider's and web host's standard terms have none of
+      these, and no supplier is bound to Rimal Byte's policies (4.1.2.3).
   - {control: 4-1-4, status: Not implemented, note: "No third-party requirements to review."}
 
   # 4-2 Cloud Computing and Hosting Cybersecurity

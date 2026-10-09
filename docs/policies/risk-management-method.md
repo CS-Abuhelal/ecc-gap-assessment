@@ -66,8 +66,10 @@ the software projects Rimal Byte delivers.
    risk is a choice, never an obligation. [1-5-1, 1-5-2]
 7. The register must record, for each risk: its id, the linked ECC controls, the risk statement,
    likelihood, impact, treatment, owner and due date. The owner is a role, and the due date
-   decides how soon the risk appears on the roadmap. A risk is closed when every linked ECC
-   control is implemented or not applicable. [1-5-2]
+   decides how soon the risk appears on the roadmap. The due date is when the treatment actions
+   must be complete; a control that needs elapsed time, such as a year of log history or a first
+   review, is rated Implemented once that time has passed. A risk is closed when every linked
+   ECC control is implemented or not applicable. [1-5-2]
 8. A risk assessment must be carried out: [1-5-3]
    - at the early stage of a technology project [1.5.3.1]
    - before a major change to technology infrastructure [1.5.3.2]

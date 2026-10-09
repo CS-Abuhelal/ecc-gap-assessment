@@ -181,7 +181,7 @@ a { color: var(--link); }
 {% endif %}
 
 <h2>Scope and applicability</h2>
-<p>The assessment covers one Windows 11 workstation ({{ snapshot.host }}) and the Wazuh SIEM that monitors it. Technical results are measured by Wazuh; governance ratings are judged against the company's own documents.</p>
+<p>The assessment covers {{ report.company }} as a whole. Governance controls are rated against the company's documents and stated practices; technical controls are measured by Wazuh on one representative Windows 11 workstation ({{ snapshot.host }}).</p>
 {% if report.limitations %}
 <h3>Limitations</h3>
 <ul>
@@ -203,6 +203,7 @@ a { color: var(--link); }
 <h2 class="page-break">Method</h2>
 <ul>
   <li>Framework: NCA Essential Cybersecurity Controls (ECC-2:2024), {{ results|length }} main controls.</li>
+  <li>Controls without technical evidence are rated from documents and stated practices: a requirement documented and approved is Implemented, one being carried out is Partially implemented, a review with a set cycle that has not yet run is Partially implemented, and anything else is Not implemented.</li>
   <li>Technical evidence: {{ check_count }} checks from the {{ policy_name }}, collected by Wazuh Security Configuration Assessment, plus open vulnerability counts and log retention.</li>
   <li>Checks rate a control Implemented when all usable checks pass, Partially implemented when some pass and Not implemented when none pass. Checks that are not applicable or were not scanned are left out.</li>
   <li>When a control has both technical and documentary evidence, it gets the weaker rating.</li>

@@ -6,7 +6,8 @@ risks:
     controls: [1-1-1, 1-1-2, 1-1-3]
     statement: >-
       Without a cybersecurity strategy, security work is not prioritised or funded against
-      business goals, so known gaps stay open.
+      business goals, so effort goes to the wrong gaps and those that block government
+      bids stay open.
     likelihood: 3
     impact: 3
     treatment: mitigate
@@ -21,9 +22,9 @@ risks:
     impact: 3
     treatment: mitigate
     owner: General Manager
-    due: 2027-01-31
+    due: 2027-12-31
   - id: R-03
-    controls: [1-3-2, 1-3-3, 1-3-4]
+    controls: [1-3-2, 1-3-3]
     statement: >-
       The new policies are not yet fully rolled out or backed by technical standards, so staff
       and systems do not follow them consistently.
@@ -33,17 +34,18 @@ risks:
     owner: Cybersecurity Lead
     due: 2026-12-31
   - id: R-04
-    controls: [1-4-2]
+    controls: [1-3-4, 1-4-2, 1-5-4]
     statement: >-
-      Roles and responsibilities are not yet reviewed, so they may drift out of date as staff
-      change.
+      The first reviews of the policies, the roles and the risk method are not due until
+      October 2027, so until then duties such as the daily alert review could drift
+      without an owner and an incident could be missed.
     likelihood: 2
     impact: 2
     treatment: accept
     owner: General Manager
     due: 2027-10-31
   - id: R-05
-    controls: [1-5-2, 1-5-3, 1-5-4]
+    controls: [1-5-2, 1-5-3]
     statement: >-
       Risk management is not yet routine, so new risks from projects, changes and suppliers can
       be missed.
@@ -61,7 +63,7 @@ risks:
     impact: 4
     treatment: mitigate
     owner: Project Manager
-    due: 2027-01-31
+    due: 2027-01-06
   - id: R-07
     controls: [1-8-1, 1-8-2, 1-8-3]
     statement: >-
@@ -105,18 +107,21 @@ risks:
   - id: R-11
     controls: [2-2-2, 2-2-3, 2-2-4]
     statement: >-
-      Weak workstation sign-in settings and no access reviews make account takeover easier and
-      let excess privileges build up.
+      Weak workstation sign-in settings and no access reviews make account takeover easier
+      and let excess privileges build up; a taken-over laptop or account could be used to
+      reach client systems through Rimal Byte's client-issued accounts.
     likelihood: 3
-    impact: 4
+    impact: 5
     treatment: mitigate
     owner: IT Manager
     due: 2026-11-30
   - id: R-12
     controls: [2-3-1, 2-3-2, 2-3-3, 2-3-4]
     statement: >-
-      Workstations fall well short of the CIS baseline, so malware and misuse are more likely to
-      succeed.
+      Workstations fall well short of the CIS baseline, so malware or a hands-on attacker
+      is more likely to compromise a laptop and reach the client data and Microsoft 365
+      sessions on it; settings Windows 11 Home cannot apply are under the cybersecurity
+      policy's standing exception until the move to Pro or Enterprise.
     likelihood: 4
     impact: 4
     treatment: mitigate
@@ -135,8 +140,9 @@ risks:
   - id: R-14
     controls: [2-5-1, 2-5-2, 2-5-3, 2-5-4]
     statement: >-
-      A flat office network behind a consumer-grade firewall, with unneeded services running on
-      workstations, lets an attacker move from one device to others.
+      A flat office network behind a consumer-grade firewall, with unneeded services
+      running on laptops, lets an attacker on one laptop or the guest Wi-Fi reach other
+      laptops and the Wazuh server, widening a breach.
     likelihood: 3
     impact: 3
     treatment: mitigate
@@ -155,8 +161,8 @@ risks:
   - id: R-16
     controls: [2-7-1, 2-7-2, 2-7-3]
     statement: >-
-      Without data protection rules, client data can leak through unmanaged cloud storage and
-      diagnostic data sent to vendors.
+      Without data protection rules, client data can leak through personal cloud storage
+      and diagnostic data sent to vendors.
     likelihood: 3
     impact: 3
     treatment: mitigate
@@ -165,8 +171,9 @@ risks:
   - id: R-17
     controls: [2-8-1, 2-8-2, 2-8-3, 2-8-4]
     statement: >-
-      Laptops are not encrypted (Windows 11 Home has no full BitLocker), so a lost or stolen
-      laptop exposes client data.
+      Laptops are not encrypted (Windows 11 Home has no full BitLocker), so a lost or
+      stolen laptop exposes client data. Settings Windows 11 Home cannot apply are under
+      the cybersecurity policy's standing exception until the move to Pro or Enterprise.
     likelihood: 3
     impact: 4
     treatment: mitigate
@@ -195,8 +202,9 @@ risks:
   - id: R-20
     controls: [2-11-1, 2-11-2, 2-11-3, 2-11-4]
     statement: >-
-      Without penetration testing, exploitable weaknesses are more likely to be found by
-      attackers first.
+      Without penetration testing, weaknesses in the website, the Microsoft 365 tenant or
+      the laptops may be found and used by attackers first, leading to a breach of company
+      or client data.
     likelihood: 2
     impact: 3
     treatment: mitigate
@@ -225,8 +233,8 @@ risks:
   - id: R-23
     controls: [2-14-1, 2-14-2, 2-14-3, 2-14-4]
     statement: >-
-      Devices could be stolen from the shared office, and old devices and paper are not securely
-      destroyed.
+      Without physical security requirements, a laptop or old disk could be stolen from
+      the shared office or thrown away with client data on it, exposing that data.
     likelihood: 2
     impact: 3
     treatment: mitigate
@@ -245,8 +253,8 @@ risks:
   - id: R-25
     controls: [4-1-1, 4-1-2, 4-1-4]
     statement: >-
-      Supplier contracts have no security or incident clauses, so a supplier breach could expose
-      company data with no agreed response.
+      Contracts with the internet provider and web host have no security or incident
+      clauses, so a breach at either could expose company data with no agreed response.
     likelihood: 2
     impact: 3
     treatment: mitigate

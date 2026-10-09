@@ -133,3 +133,10 @@ def test_the_report_shows_the_company_summary_and_limitations(dataset, baseline)
     assert "<p>Example Co is a made-up company used by the tests.</p>" in html
     assert "<li>&lt;i&gt;Passwords&lt;/i&gt; need work.</li>" in html
     assert "<li>All data here is made up.</li>" in html
+
+
+def test_the_scope_and_method_describe_the_whole_company(dataset, baseline):
+    html = render_html(dataset, assess(dataset, baseline))
+    assert "The assessment covers Example Co (fictional) as a whole." in html
+    assert "The assessment covers one Windows 11 workstation" not in html
+    assert "documented and approved is Implemented" in html

@@ -44,9 +44,8 @@ office network and client data.
 5. Every deviation from the baseline must be recorded as an exception. Laptops that run
    Windows 11 Home cannot apply every setting. For these settings the General Manager must
    approve one standing exception, as the Exceptions section requires. The IT Manager owns it,
-   and it is recorded in the risk register, where it is tracked with risks R-12 and R-17. It
-   must have an end date no more than 12 months away, by which the laptops must have moved to
-   Windows 11 Pro or Enterprise. [1-3-3, 2-3-1]
+   and it is recorded in the risk register. It must have an end date no more than 12 months
+   away, by which the laptops must have moved to Windows 11 Pro or Enterprise. [1-3-3, 2-3-1]
 6. The Cybersecurity Lead must publish the current version of every policy where all staff can
    read it, and must tell staff when one changes. [1-3-1]
 7. Staff and contractors must read and acknowledge these policies when they join and again after

@@ -30,11 +30,17 @@
 
 - **Laptops:** one Windows 11 laptop per employee. WS-01 represents them and is the only device
   with technical evidence in this assessment. It runs Windows 11 Home; the company plans to move
-  its laptops to Windows 11 Pro or Enterprise.
+  its laptops to Windows 11 Pro or Enterprise. Laptops are not encrypted (Windows 11 Home has no
+  full BitLocker). Support staff reach client systems from company laptops, using client-issued
+  accounts protected by multi-factor authentication.
 - **Microsoft 365 Business:** email, Teams, OneDrive and SharePoint. Multi-factor authentication
-  is enforced for every account, and there are two named administrators.
+  is enforced for every account, and there are two named administrators. Email uses Microsoft
+  365's default spam and malware filtering; the domain publishes SPF only (no DKIM or DMARC), and
+  there is no email archiving. Every person has their own named account, but staff and IT accounts
+  have broader access than their jobs need, and access has never been reviewed.
 - **Wazuh SIEM:** a single-node Wazuh server in the office collects security events and
-  vulnerability data from the laptops.
+  vulnerability data from the laptops. It was installed in late September 2026 and collects from
+  the laptops only, not yet from Microsoft 365 or the router.
 - **Office network:** the internet provider's router with its built-in firewall, and a separate
   guest Wi-Fi. There are no servers in the office apart from the Wazuh server.
 - **Phones:** staff use their personal phones for email and Teams. There is no mobile device
@@ -63,6 +69,8 @@ or paper.
 - Employment contracts include a confidentiality clause. There is no background screening.
 - When someone leaves, the IT Manager disables their accounts, with no checklist or record.
 - There is no awareness program. The Cybersecurity Lead has done some self-paced training.
+- On 6 October 2026 the Cybersecurity Lead published the six policies on SharePoint and emailed
+  all staff; acknowledgments are being collected.
 
 ## Assets and data
 
