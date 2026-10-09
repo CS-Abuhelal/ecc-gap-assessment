@@ -60,7 +60,9 @@ or paper.
 ## Suppliers and clients
 
 - Suppliers: Microsoft (cloud services, assessed under ECC 4-2), the internet provider and the
-  web hosting provider, all on their standard terms.
+  web hosting provider, all on their standard terms. Microsoft's terms cover confidentiality,
+  deleting data at the end of the service and notifying customers of incidents; the internet
+  provider's and web host's terms cover none of these.
 - Client contracts include non-disclosure clauses.
 - Rimal Byte does not outsource IT or cybersecurity operations.
 

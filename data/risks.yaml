@@ -141,8 +141,8 @@ risks:
     controls: [2-5-1, 2-5-2, 2-5-3, 2-5-4]
     statement: >-
       A flat office network behind a consumer-grade firewall, with unneeded services
-      running on laptops, lets an attacker on one laptop or the guest Wi-Fi reach other
-      laptops and the Wazuh server, widening a breach.
+      running on laptops, lets an attacker on one laptop reach the other laptops and the
+      Wazuh server, widening a breach.
     likelihood: 3
     impact: 3
     treatment: mitigate
