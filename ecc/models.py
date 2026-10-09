@@ -13,6 +13,14 @@ SUBDOMAIN_PATTERN = r"^[1-4]-\d{1,2}$"
 SUBCONTROL_PATTERN = r"^[1-4]\.\d{1,2}\.\d{1,2}\.\d{1,2}$"
 CIS_PATTERN = r"^\d+(\.\d+)*$"
 LABEL_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
+FIX_PATTERN = r"^F\d{2}$"
+# Fixes may only touch policy keys and the two security-option keys under Control.
+REGISTRY_PATTERN = (
+    r"^HKLM:\\(SOFTWARE\\Policies\\.+"
+    r"|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\.+"
+    r"|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$"
+)
+AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$"
 NOT_BLANK = r"\S"  # at least one character that is not whitespace
 HOST_PLACEHOLDER = "WS-01"
 
@@ -284,3 +292,61 @@ class Snapshot(Strict):
     checks: tuple[CheckResult, ...]
     vulnerabilities: VulnerabilityCounts
     logging: LoggingFacts
+
+
+class RegistryItem(Strict):
+    """A registry value that apply.ps1 sets."""
+
+    kind: Literal["registry"]
+    path: str = Field(pattern=REGISTRY_PATTERN)
+    name: str = Field(min_length=1, pattern=NOT_BLANK)
+    type: Literal["DWord", "String"]
+    value: int | str
+
+    @model_validator(mode="after")
+    def _value_fits_type(self) -> RegistryItem:
+        if self.type == "DWord" and not (
+            isinstance(self.value, int) and 0 <= self.value <= 0xFFFFFFFF
+        ):
+            raise ValueError("a DWord value must be a whole number from 0 to 4294967295")
+        if self.type == "String" and not isinstance(self.value, str):
+            raise ValueError("a String value must be text")
+        return self
+
+
+class AuditItem(Strict):
+    """An advanced audit policy subcategory; apply.ps1 adds the required results to it."""
+
+    kind: Literal["audit"]
+    guid: str = Field(pattern=AUDIT_GUID_PATTERN)
+    subcategory: Paragraph
+    require: Literal["success", "failure", "both"]
+
+
+class AccountItem(Strict):
+    """A local account policy that apply.ps1 sets with 'net accounts'."""
+
+    kind: Literal["account"]
+    option: Literal[
+        "uniquepw", "minpwage", "minpwlen", "lockoutthreshold", "lockoutduration", "lockoutwindow"
+    ]
+    value: int = Field(ge=0, le=999)
+
+
+FixItem = Annotated[RegistryItem | AuditItem | AccountItem, Field(discriminator="kind")]
+
+
+class Fix(Strict):
+    """One reversible change to WS-01 and the failed CIS checks it should make pass."""
+
+    id: str = Field(pattern=FIX_PATTERN)
+    title: Paragraph
+    why: Paragraph
+    effect: Paragraph
+    optional: bool = False
+    checks: tuple[int, ...] = Field(min_length=1)
+    items: tuple[FixItem, ...] = Field(min_length=1)
+
+
+class FixList(Strict):
+    fixes: tuple[Fix, ...]

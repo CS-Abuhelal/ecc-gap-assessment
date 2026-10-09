@@ -94,8 +94,21 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
     sama_targets = {c for link in dataset.sama_mapping.links for c in link.ecc}
     report("sama_mapping.yaml: unknown ECC controls", sorted(sama_targets - known))
 
-    report("snapshots: labels used twice", duplicates(s.label for s in snapshots))
+    fixes = dataset.fixes.fixes
+    fixed = [check for fix in fixes for check in fix.checks]
     check_ids = {check.id for check in dataset.policy.checks}
+    report("fixes.json: fix ids used twice", duplicates(fix.id for fix in fixes))
+    report("fixes.json: unknown CIS checks", [str(c) for c in sorted(set(fixed) - check_ids)])
+    report("fixes.json: checks listed in two fixes", duplicates(str(c) for c in fixed))
+    if snapshots:
+        first = snapshots[0]
+        failed = {check.id for check in first.checks if check.result == "failed"}
+        report(
+            f"fixes.json: checks that were not failing in snapshot '{first.label}'",
+            [str(c) for c in sorted((set(fixed) & check_ids) - failed)],
+        )
+
+    report("snapshots: labels used twice", duplicates(s.label for s in snapshots))
     report(
         "cis_checks.yaml: check ids listed twice",
         duplicates(str(check.id) for check in dataset.policy.checks),

@@ -243,6 +243,44 @@ SAMA_MAPPING = {
     "not_applicable": [{"subdomain": "3.3.12", "reason": "Example Co runs no payment systems."}],
 }
 
+FIXES = {
+    "fixes": [
+        {
+            "id": "F01",
+            "title": "Remember old passwords",
+            "why": "Stops people reusing a recent password.",
+            "effect": "Nothing until the next password change.",
+            "checks": [26000],
+            "items": [
+                {"kind": "account", "option": "uniquepw", "value": 24},
+                {
+                    "kind": "registry",
+                    "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SAM",
+                    "name": "RelaxMinimumPasswordLengthLimits",
+                    "type": "DWord",
+                    "value": 1,
+                },
+            ],
+        },
+        {
+            "id": "F02",
+            "title": "Audit sign-ins",
+            "why": "Records failed sign-ins.",
+            "effect": "More Security events.",
+            "optional": True,
+            "checks": [26139],
+            "items": [
+                {
+                    "kind": "audit",
+                    "guid": "{0CCE923F-69AE-11D9-BED3-505054503030}",
+                    "subcategory": "Credential Validation",
+                    "require": "both",
+                }
+            ],
+        },
+    ]
+}
+
 DATA_FILES = {
     "catalog.yaml": CATALOG,
     "cis_checks.yaml": CIS_CHECKS,
@@ -260,10 +298,17 @@ def rewrite(root: Path, name: str, content: object) -> None:
     (root / "data" / name).write_text(yaml.safe_dump(content, sort_keys=False), encoding="utf-8")
 
 
+def write_fixes(root: Path, content: object) -> None:
+    path = root / "remediation" / "fixes.json"
+    path.write_text(json.dumps(content, indent=2), encoding="utf-8")
+
+
 def write_root(root: Path) -> Path:
     (root / "data").mkdir(parents=True)
     for name, content in DATA_FILES.items():
         rewrite(root, name, content)
+    (root / "remediation").mkdir()
+    write_fixes(root, FIXES)
     policies = root / "docs" / "policies"
     policies.mkdir(parents=True)
     for document in ("access-control.md", "logging.md"):

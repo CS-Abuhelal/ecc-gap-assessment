@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ecc.assess import assess, compliance, domain_scores
 from ecc.load import load_dataset, load_snapshots
+from ecc.remediation import fix_results
 from ecc.sama import level_counts, sama_view
 from ecc.validate import validate
 
@@ -50,3 +51,15 @@ def test_the_sama_finding_matches_the_view():
     finding = next(item for item in dataset.report.key_findings if "SAMA" in item)
     assert counts[3] == 0
     assert f"none of the {sum(counts.values())} applicable subdomains" in " ".join(finding.split())
+
+
+def test_the_planned_fixes():
+    dataset, snapshots, assessment = baseline_assessment()
+    rows = fix_results(dataset, assessment.snapshot)
+    assert len(rows) == 12
+    assert sum(len(row.fix.checks) for row in rows) == 57
+    assert [row.fix.id for row in rows if row.fix.optional] == ["F08"]
+    assert all(row.after == 0 for row in rows)
+    assert {control for row in rows for control in row.controls} == {
+        "2-2-3", "2-3-3", "2-5-3", "2-7-2", "2-12-3"
+    }

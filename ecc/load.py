@@ -16,6 +16,7 @@ from ecc.models import (
     CisPolicy,
     Control,
     Evidence,
+    FixList,
     Mapping,
     ReportText,
     RiskRegister,
@@ -43,6 +44,7 @@ class Dataset:
     report: ReportText
     sama: SamaFramework
     sama_mapping: SamaMapping
+    fixes: FixList
 
 
 def read_text(path: Path) -> str:
@@ -61,6 +63,13 @@ def load_model(model: type[ModelT], path: Path) -> ModelT:
         raise DataError(f"{path.name}: not valid YAML ({error}).") from error
     try:
         return model.model_validate(data)
+    except ValidationError as error:
+        raise DataError(f"{path.name}: {error}") from error
+
+
+def load_json_model(model: type[ModelT], path: Path) -> ModelT:
+    try:
+        return model.model_validate_json(read_text(path))
     except ValidationError as error:
         raise DataError(f"{path.name}: {error}") from error
 
@@ -84,7 +93,7 @@ def load_catalog(path: Path) -> tuple[Control, ...]:
 
 
 def load_dataset(root: Path) -> Dataset:
-    """Read all nine data files; if any are broken, report every one of them together."""
+    """Read all ten data files; if any are broken, report every one of them together."""
     data = root / "data"
     readers: dict[str, Callable[[], Any]] = {
         "catalog": lambda: load_catalog(data / "catalog.yaml"),
@@ -96,6 +105,7 @@ def load_dataset(root: Path) -> Dataset:
         "report": lambda: load_model(ReportText, data / "report.yaml"),
         "sama": lambda: load_model(SamaFramework, data / "sama_csf.yaml"),
         "sama_mapping": lambda: load_model(SamaMapping, data / "sama_mapping.yaml"),
+        "fixes": lambda: load_json_model(FixList, root / "remediation" / "fixes.json"),
     }
     loaded: dict[str, Any] = {}
     errors: list[str] = []
@@ -110,10 +120,7 @@ def load_dataset(root: Path) -> Dataset:
 
 
 def load_snapshot(path: Path) -> Snapshot:
-    try:
-        return Snapshot.model_validate_json(read_text(path))
-    except ValidationError as error:
-        raise DataError(f"{path.name}: {error}") from error
+    return load_json_model(Snapshot, path)
 
 
 def load_snapshots(directory: Path) -> list[Snapshot]:

@@ -13,10 +13,12 @@ from tests.fixtures import (
     CATALOG,
     CIS_CHECKS,
     EVIDENCE,
+    FIXES,
     MAPPING,
     RISKS,
     SAMA_MAPPING,
     rewrite,
+    write_fixes,
 )
 
 
@@ -298,3 +300,20 @@ def test_a_sama_subdomain_cannot_be_linked_twice(root):
     mapping["not_applicable"].append({"subdomain": "3.1.3", "reason": "Twice."})
     rewrite(root, "sama_mapping.yaml", mapping)
     assert "sama_mapping.yaml: subdomains linked twice (1): 3.1.3" in problems(root)
+
+
+def test_fixes_must_name_known_checks_once(root):
+    first, second = FIXES["fixes"]
+    fixes = [first, {**second, "id": "F01", "checks": [26000, 99999]}]
+    write_fixes(root, {"fixes": fixes})
+    found = problems(root)
+    assert "fixes.json: fix ids used twice (1): F01" in found
+    assert "fixes.json: unknown CIS checks (1): 99999" in found
+    assert "fixes.json: checks listed in two fixes (1): 26000" in found
+
+
+def test_fixes_must_target_checks_that_failed_first(root):
+    first, second = FIXES["fixes"]
+    write_fixes(root, {"fixes": [first, {**second, "checks": [26001, 26139, 26140]}]})
+    expected = "fixes.json: checks that were not failing in snapshot 'baseline' (2): 26001, 26140"
+    assert expected in problems(root)

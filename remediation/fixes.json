@@ -1,0 +1,552 @@
+{
+  "fixes": [
+    {
+      "id": "F01",
+      "title": "Let the detailed audit settings take effect",
+      "why": "Windows applies the subcategory audit settings in F02 only when this option is on.",
+      "effect": "None on its own.",
+      "checks": [
+        26013
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+          "name": "SCENoApplyLegacyAuditPolicy",
+          "type": "DWord",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "Audit sign-ins, account and group changes, process starts and policy changes",
+      "why": "Records the Security events an analyst needs, such as failed sign-ins, new accounts, group changes, new processes and firewall rule changes. Wazuh forwards them.",
+      "effect": "More events in the Security log and in Wazuh. Sensitive Privilege Use is left out because it floods a desktop's log.",
+      "checks": [
+        26139,
+        26140,
+        26142,
+        26143,
+        26144,
+        26145,
+        26146,
+        26149,
+        26151,
+        26152,
+        26153,
+        26154,
+        26157,
+        26158,
+        26159,
+        26161,
+        26164
+      ],
+      "items": [
+        {
+          "kind": "audit",
+          "guid": "{0CCE923F-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Credential Validation",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9239-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Application Group Management",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9235-69AE-11D9-BED3-505054503030}",
+          "subcategory": "User Account Management",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9248-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Plug and Play Events",
+          "require": "success"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE922B-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Process Creation",
+          "require": "success"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9217-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Account Lockout",
+          "require": "failure"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9249-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Group Membership",
+          "require": "success"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE921C-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Other Logon/Logoff Events",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9244-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Detailed File Share",
+          "require": "failure"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9224-69AE-11D9-BED3-505054503030}",
+          "subcategory": "File Share",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9227-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Other Object Access Events",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9245-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Removable Storage",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9231-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Authorization Policy Change",
+          "require": "success"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9232-69AE-11D9-BED3-505054503030}",
+          "subcategory": "MPSSVC Rule-Level Policy Change",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9234-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Other Policy Change Events",
+          "require": "failure"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9213-69AE-11D9-BED3-505054503030}",
+          "subcategory": "IPsec Driver",
+          "require": "both"
+        },
+        {
+          "kind": "audit",
+          "guid": "{0CCE9211-69AE-11D9-BED3-505054503030}",
+          "subcategory": "Security System Extension",
+          "require": "success"
+        }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "Record the command line of new processes",
+      "why": "Process-start events (4688) then show how a program was started, not only its name.",
+      "effect": "Command lines appear in the Security log and in Wazuh on this PC.",
+      "checks": [
+        26222
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\Audit",
+          "name": "ProcessCreationIncludeCmdLine_Enabled",
+          "type": "DWord",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "F04",
+      "title": "Keep more history in the Windows event logs",
+      "why": "Bigger logs keep weeks of events instead of days, so older activity can still be investigated.",
+      "effect": "The four logs may use up to about 290 MB of disk in total.",
+      "checks": [
+        26374,
+        26376,
+        26378,
+        26380
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Application",
+          "name": "MaxSize",
+          "type": "DWord",
+          "value": 32768
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Security",
+          "name": "MaxSize",
+          "type": "DWord",
+          "value": 196608
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Setup",
+          "name": "MaxSize",
+          "type": "DWord",
+          "value": 32768
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\System",
+          "name": "MaxSize",
+          "type": "DWord",
+          "value": 32768
+        }
+      ]
+    },
+    {
+      "id": "F05",
+      "title": "Turn on Windows Firewall logging for all three profiles",
+      "why": "Logs dropped packets and allowed connections, so blocked scans and unexpected connections leave a trace.",
+      "effect": "Up to 16 MB of firewall log per profile under System32\\logfiles\\firewall.",
+      "checks": [
+        26119,
+        26120,
+        26121,
+        26122,
+        26126,
+        26127,
+        26128,
+        26129,
+        26135,
+        26136,
+        26137,
+        26138
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile\\Logging",
+          "name": "LogFilePath",
+          "type": "String",
+          "value": "%SystemRoot%\\System32\\logfiles\\firewall\\domainfw.log"
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile\\Logging",
+          "name": "LogFileSize",
+          "type": "DWord",
+          "value": 16384
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile\\Logging",
+          "name": "LogDroppedPackets",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile\\Logging",
+          "name": "LogSuccessfulConnections",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile\\Logging",
+          "name": "LogFilePath",
+          "type": "String",
+          "value": "%SystemRoot%\\System32\\logfiles\\firewall\\privatefw.log"
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile\\Logging",
+          "name": "LogFileSize",
+          "type": "DWord",
+          "value": 16384
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile\\Logging",
+          "name": "LogDroppedPackets",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile\\Logging",
+          "name": "LogSuccessfulConnections",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile\\Logging",
+          "name": "LogFilePath",
+          "type": "String",
+          "value": "%SystemRoot%\\System32\\logfiles\\firewall\\publicfw.log"
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile\\Logging",
+          "name": "LogFileSize",
+          "type": "DWord",
+          "value": 16384
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile\\Logging",
+          "name": "LogDroppedPackets",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile\\Logging",
+          "name": "LogSuccessfulConnections",
+          "type": "DWord",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "F06",
+      "title": "Send Microsoft only the required diagnostic data",
+      "why": "Limits the data Windows sends to Microsoft and keeps memory dumps and extra logs out of it.",
+      "effect": "Settings shows diagnostic data as managed by your organisation.",
+      "checks": [
+        26360,
+        26361,
+        26362,
+        26363,
+        26364,
+        26365,
+        26366
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "AllowTelemetry",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "DisableEnterpriseAuthProxy",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "DisableOneSettingsDownloads",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "DoNotShowFeedbackNotifications",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "EnableOneSettingsAuditing",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "LimitDiagnosticLogCollection",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
+          "name": "LimitDumpCollection",
+          "type": "DWord",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "F07",
+      "title": "Require longer local passwords and remember old ones",
+      "why": "Local passwords need at least 14 characters and cannot reuse any of the last 24.",
+      "effect": "Nothing changes until the next password change, which then needs 14 or more characters and cannot happen twice in one day.",
+      "checks": [
+        26000,
+        26002,
+        26003,
+        26004
+      ],
+      "items": [
+        {
+          "kind": "account",
+          "option": "uniquepw",
+          "value": 24
+        },
+        {
+          "kind": "account",
+          "option": "minpwage",
+          "value": 1
+        },
+        {
+          "kind": "account",
+          "option": "minpwlen",
+          "value": 14
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SAM",
+          "name": "RelaxMinimumPasswordLengthLimits",
+          "type": "DWord",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "F08",
+      "title": "Lock an account for 15 minutes after 5 wrong passwords",
+      "why": "Slows down password guessing against local accounts (Windows 11 already locks after 10).",
+      "effect": "Five wrong passwords within 15 minutes lock the account for 15 minutes, including during failed-logon test bursts. Applied only with -IncludeLockout.",
+      "optional": true,
+      "checks": [
+        26005,
+        26006,
+        26007
+      ],
+      "items": [
+        {
+          "kind": "account",
+          "option": "lockoutduration",
+          "value": 15
+        },
+        {
+          "kind": "account",
+          "option": "lockoutwindow",
+          "value": 15
+        },
+        {
+          "kind": "account",
+          "option": "lockoutthreshold",
+          "value": 5
+        }
+      ]
+    },
+    {
+      "id": "F09",
+      "title": "Tighten User Account Control for other accounts",
+      "why": "The built-in Administrator gets approval prompts, and standard users cannot elevate.",
+      "effect": "None for an administrator account that already gets UAC prompts.",
+      "checks": [
+        26064,
+        26066
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+          "name": "FilterAdministratorToken",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+          "name": "ConsentPromptBehaviorUser",
+          "type": "DWord",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "F10",
+      "title": "Turn off AutoPlay and AutoRun",
+      "why": "USB drives, discs and phones can no longer start programs or prompts when plugged in.",
+      "effect": "No AutoPlay pop-up when a drive or phone is connected; open it from File Explorer instead.",
+      "checks": [
+        26301,
+        26302,
+        26303
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+          "name": "NoAutoplayfornonVolume",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+          "name": "NoAutorun",
+          "type": "DWord",
+          "value": 1
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+          "name": "NoDriveTypeAutoRun",
+          "type": "DWord",
+          "value": 255
+        }
+      ]
+    },
+    {
+      "id": "F11",
+      "title": "Turn off multicast name resolution and allow DNS over HTTPS",
+      "why": "Without LLMNR, a device on the same network cannot answer for a mistyped name and capture a sign-in, the trick tools like Responder use.",
+      "effect": "Names are resolved by DNS only; DNS over HTTPS is allowed, not forced.",
+      "checks": [
+        26191,
+        26193
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient",
+          "name": "DoHPolicy",
+          "type": "DWord",
+          "value": 2
+        },
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient",
+          "name": "EnableMulticast",
+          "type": "DWord",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "F12",
+      "title": "Turn off Windows Remote Assistance invitations",
+      "why": "Removes a remote-control entry point the PC does not use.",
+      "effect": "Remote Assistance invitations stop working; Quick Assist is not affected.",
+      "checks": [
+        26288
+      ],
+      "items": [
+        {
+          "kind": "registry",
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services",
+          "name": "fAllowToGetHelp",
+          "type": "DWord",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}
