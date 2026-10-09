@@ -14,6 +14,7 @@ from ecc.assess import Assessment, compare, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.models import Status
 from ecc.risk import BUCKET_ORDER, rating, risk_rows, roadmap
+from ecc.sama import level_counts, sama_view
 
 BROWSER_NAMES = ("chrome", "google-chrome", "google-chrome-stable", "chromium", "msedge")
 WINDOWS_BROWSERS = (
@@ -50,6 +51,7 @@ def report_context(
     titles = {control.domain: control.domain_title for control in dataset.catalog}
     after_domains = domain_scores(after)
     before_domains = domain_scores(before) if before is not None else {}
+    sama = sama_view(dataset, after)
     rows = risk_rows(dataset.risks, after)
     open_rows = [row for row in rows if not row.closed]
     heatmap = [
@@ -87,6 +89,9 @@ def report_context(
         "rating_class": RATING_CLASS,
         "rating": rating,
         "report": dataset.report,
+        "sama": sama,
+        "sama_counts": level_counts(sama),
+        "sama_levels": {level.level: level.name for level in dataset.sama.levels},
     }
 
 

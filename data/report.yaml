@@ -30,6 +30,9 @@ key_findings:
   - >-
     There is no awareness program, incident response plan, penetration testing or business
     continuity plan (1-10, 2-11, 2-13, 3-1).
+  - >-
+    Mapped onto SAMA's Cyber Security Framework, none of the 28 applicable subdomains reaches
+    maturity Level 3, the minimum SAMA expects of the banks it regulates (indicative view).
 limitations:
   - >-
     Rimal Byte is fictional. Its profile, policies and governance ratings were written for this
@@ -46,4 +49,8 @@ limitations:
   - >-
     The assessment was carried out by Rimal Byte's own Cybersecurity Lead as the first annual
     review under ECC 1-8-1, so it is not an independent review (1-8-2).
+  - >-
+    The SAMA Cyber Security Framework view is indicative: Rimal Byte is not regulated by SAMA,
+    and its maturity levels are derived from the ECC ratings by a stated rule rather than
+    assessed separately.
   - Results describe one point in time, the baseline snapshot of 8 October 2026.

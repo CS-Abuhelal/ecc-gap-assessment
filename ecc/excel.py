@@ -16,8 +16,17 @@ from ecc.load import Dataset
 from ecc.mapping import controls_for
 from ecc.models import Status
 from ecc.risk import risk_rows, roadmap
+from ecc.sama import sama_view
 
-SHEETS = ("Summary", "Controls", "Technical evidence", "Risk register", "Roadmap")
+SHEETS = (
+    "Summary",
+    "Controls",
+    "Technical evidence",
+    "Risk register",
+    "Roadmap",
+    "SAMA CSF view",
+)
+LEVEL_COLOURS = {0: "FFC7CE", 1: "FCE4D6", 2: "FFEB9C", 3: "C6EFCE"}
 STATUS_COLOURS = {
     Status.IMPLEMENTED: "C6EFCE",
     Status.PARTIAL: "FFEB9C",
@@ -218,6 +227,31 @@ def write_risks(register: Worksheet, plan: Worksheet, dataset: Dataset, after: A
     )
 
 
+def write_sama(sheet: Worksheet, dataset: Dataset, after: Assessment) -> None:
+    names = {level.level: level.name for level in dataset.sama.levels}
+    view = sama_view(dataset, after)
+    rows = [
+        [
+            result.subdomain.id,
+            result.subdomain.title,
+            f"{result.domain.id} {result.domain.title}",
+            ", ".join(result.ecc),
+            score(result.score) if result.level is not None else "n/a",
+            f"{result.level} {names[result.level]}" if result.level is not None else "n/a",
+            result.note or "",
+        ]
+        for result in view
+    ]
+    header = ["SAMA subdomain", "Title", "SAMA domain", "ECC controls", "Compliance %",
+              "Indicative maturity", "Note"]
+    table(sheet, header, rows, [10, 34, 30, 30, 13, 26, 60], autofilter=True)
+    for row_number, result in enumerate(view, start=2):
+        if result.level is not None:
+            sheet.cell(row=row_number, column=6).fill = fill(LEVEL_COLOURS[result.level])
+            if isinstance(result.score, float):
+                sheet.cell(row=row_number, column=5).number_format = "0.0"
+
+
 def write_workbook(
     path: Path, dataset: Dataset, after: Assessment, before: Assessment | None = None
 ) -> None:
@@ -229,5 +263,6 @@ def write_workbook(
     write_controls(sheets[1], after)
     write_checks(sheets[2], dataset, after)
     write_risks(sheets[3], sheets[4], dataset, after)
+    write_sama(sheets[5], dataset, after)
     path.parent.mkdir(parents=True, exist_ok=True)
     book.save(path)

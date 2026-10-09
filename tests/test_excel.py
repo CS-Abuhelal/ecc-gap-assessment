@@ -113,3 +113,11 @@ def test_big_sheets_have_filters(tmp_path, dataset, after):
 def test_the_summary_names_the_company(tmp_path, dataset, after):
     rows = list(workbook(tmp_path, dataset, after)["Summary"].iter_rows(values_only=True))
     assert ("Company", "Example Co (fictional)") in [row[:2] for row in rows]
+
+
+def test_the_sama_sheet(tmp_path, dataset, baseline):
+    sheet = workbook(tmp_path, dataset, baseline)["SAMA CSF view"]
+    rows = {row[0]: row for row in sheet.iter_rows(min_row=2, values_only=True)}
+    assert rows["3.3.5"][4:6] == (75.0, "2 Repeatable but informal")
+    assert rows["3.3.12"][4:7] == ("n/a", "n/a", "Example Co runs no payment systems.")
+    assert rows["3.1.4"][6] == "Roles are not written down."

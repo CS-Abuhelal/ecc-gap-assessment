@@ -140,3 +140,11 @@ def test_the_scope_and_method_describe_the_whole_company(dataset, baseline):
     assert "The assessment covers Example Co (fictional) as a whole." in html
     assert "The assessment covers one Windows 11 workstation" not in html
     assert "documented and approved is Implemented" in html
+
+
+def test_the_report_shows_the_sama_view(dataset, after):
+    html = render_html(dataset, assess(dataset, after))
+    assert "SAMA Cyber Security Framework view (indicative)" in html
+    assert "<b>1 of 4 applicable subdomains reach Level 3</b>" in html
+    assert "<td>3 Structured and formalized</td>" in html
+    assert "Example Co runs no payment systems." in html
