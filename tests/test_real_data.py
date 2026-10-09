@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ecc.assess import assess, compliance, domain_scores
 from ecc.load import load_dataset, load_snapshots
+from ecc.sama import level_counts, sama_view
 from ecc.validate import validate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,3 +32,10 @@ def test_the_baseline_results():
         "Not implemented": 55,
         "Not applicable": 6,
     }
+
+
+def test_the_sama_view():
+    dataset, _, assessment = baseline_assessment()
+    view = sama_view(dataset, assessment)
+    assert len(view) == 32
+    assert level_counts(view) == {0: 10, 1: 10, 2: 8, 3: 0}
