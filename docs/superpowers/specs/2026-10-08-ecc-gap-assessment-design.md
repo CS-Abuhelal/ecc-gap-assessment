@@ -309,8 +309,9 @@ alignment from its suppliers.
 - Score: the ECC compliance of the linked controls. Indicative maturity: Level 3 when every
   linked control is Implemented, 2 at 50% or more with at least one Implemented, 1 above 0%, 0
   otherwise. The levels show how much of the mapped ECC controls is in place, not SAMA's own
-  level criteria, so they are an upper bound. Levels 4 and 5 need measured control effectiveness
-  and are not derived. SAMA expects at least Level 3.
+  level criteria, so they are a rough guide: a derived Level 3 would be an upper bound, and a
+  Level 0 can miss informal practice. Levels 4 and 5 need measured control effectiveness and are
+  not derived. SAMA expects at least Level 3.
 - Outputs: a "SAMA CSF view (indicative)" workbook sheet, which also gives each link's reason,
   and a report section, both labelled indicative.
 - Final review (2026-10-09): Level 2 originally needed only 50%, which put subdomains resting on

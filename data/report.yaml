@@ -54,5 +54,6 @@ limitations:
     The SAMA Cyber Security Framework view is indicative: Rimal Byte is not regulated by SAMA,
     and its maturity levels are derived from the ECC ratings by a stated rule rather than
     assessed separately. They show how much of the mapped ECC controls is in place, not SAMA's
-    own level criteria, so they are an upper bound.
+    own level criteria, so they are a rough guide: a derived Level 3 would be an upper bound, and
+    a Level 0 can miss informal practice.
   - Results describe one point in time, the baseline snapshot of 8 October 2026.
