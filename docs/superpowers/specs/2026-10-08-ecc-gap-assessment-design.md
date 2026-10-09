@@ -291,3 +291,23 @@ A risk whose controls are all Implemented in the latest snapshot is shown as clo
 
 SAMA Cyber Security Framework mapping, other NCA frameworks (CCC, DCC, OTCC), more than one
 endpoint, an Arabic version, AI features, a live dashboard.
+
+## 14. Addendum (2026-10-09): SAMA Cyber Security Framework view
+
+Ahmed asked for a second mapping, to the Saudi Central Bank's Cyber Security Framework (SAMA
+CSF), because bank co-ops are a priority. Rimal Byte (fictional) is not regulated by SAMA, so the
+view is indicative: it shows how the company would look to a bank client that expects SAMA
+alignment from its suppliers.
+
+- `data/sama_csf.yaml`: SAMA CSF's 4 domains, 32 subdomains and maturity levels 0-5, as published
+  in the SAMA Rulebook.
+- `data/sama_mapping.yaml`: each SAMA subdomain links to the ECC controls covering the same
+  requirements, with a reason, or is marked not applicable with a reason (3.2.3 is excluded for
+  non-banks; payment systems, e-banking and outsourcing do not apply). A link may override the
+  derived score with its own rating and a note when the ECC control only partly matches (used
+  for 3.3.11 Secure Disposal).
+- Score: the ECC compliance of the linked controls. Indicative maturity: Level 3 when every
+  linked control is Implemented, 2 at 50% or more, 1 above 0%, 0 otherwise. Levels 4 and 5 need
+  measured control effectiveness and are not derived. SAMA expects at least Level 3.
+- Outputs: a "SAMA CSF view" workbook sheet and a report section, both labelled indicative.
+- Plan: `docs/superpowers/plans/2026-10-09-ecc-plan-2b-sama.md`.
