@@ -225,6 +225,8 @@ A risk whose controls are all Implemented in the latest snapshot is shown as clo
 
 ## 8. Remediation (before/after)
 
+Section 15 records how plan 3 refined this section.
+
 - `remediation/fixes.yaml` lists 10-20 failed checks to fix. Each fix must be reversible,
   need no reboot, and not change how Ahmed signs in or break his apps. Mechanisms limited
   to `auditpol`, `net accounts`, `Set-NetFirewallProfile` and registry values under policy
@@ -289,7 +291,7 @@ A risk whose controls are all Implemented in the latest snapshot is shown as clo
 
 ## 13. Out of scope for v1
 
-SAMA Cyber Security Framework mapping, other NCA frameworks (CCC, DCC, OTCC), more than one
+SAMA Cyber Security Framework mapping (later added as an indicative view, section 14), other NCA frameworks (CCC, DCC, OTCC), more than one
 endpoint, an Arabic version, AI features, a live dashboard.
 
 ## 14. Addendum (2026-10-09): SAMA Cyber Security Framework view
@@ -319,3 +321,71 @@ alignment from its suppliers.
   but informal" against their own evidence; the rule now also needs an Implemented control. ECC
   1-5-3 (risk assessment triggers) was added to 3.1.5, 3.3.7 and 3.4.1.
 - Plan: `docs/superpowers/plans/2026-10-09-ecc-plan-2b-sama.md`.
+
+## 15. Addendum (2026-10-09): remediation and publishing (plan 3)
+
+Plan 3 turns section 8 into code. Where it differs from section 8, and why:
+
+- **The fix list is `remediation/fixes.json`, not YAML.** Windows PowerShell 5.1 reads JSON
+  natively and has no YAML parser, and the Python side reads the same file, so the scripts and
+  the report cannot disagree.
+- **12 fixes cover 57 failed checks** (54 without the optional F08). A fix is one coherent
+  change; for example, firewall logging for all three profiles is one fix and 12 checks. The
+  "10-20" in section 8 therefore counts fixes. Every value was checked against the Wazuh SCA
+  rule of the check it targets.
+- **Three kinds of change only:**
+  - registry values under the policy keys (`HKLM\SOFTWARE\Policies`,
+    `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies`) and the two security-option
+    keys `Lsa` and `SAM`;
+  - advanced audit subcategories, set by GUID, where auditing is added and never removed;
+  - local account policy, set with `net accounts`.
+
+  Firewall logging uses the policy registry keys rather than `Set-NetFirewallProfile`, because
+  the CIS checks read those keys. The Python model and the PowerShell module both refuse
+  anything else.
+- **Left out on purpose:**
+  - anything that changes how Ahmed signs in (Ctrl+Alt+Del, last-user display, logon banner,
+    picture password);
+  - disabling services (Xbox, Print Spooler, Remote Desktop);
+  - SMB signing and insecure guest logons, which could cut off a home NAS;
+  - Defender policies, which Tamper Protection can override;
+  - the 15-minute screen lock;
+  - PowerShell transcription, which writes every session to Documents;
+  - Sensitive Privilege Use auditing, which floods a desktop's log.
+
+  BitLocker (47 checks) cannot be enabled on Windows 11 Home.
+- **Account lockout (F08) is optional.** `apply.ps1` includes it only with `-IncludeLockout`.
+  Windows 11 already locks an account for 10 minutes after 10 wrong passwords; F08 tightens
+  that to 15 minutes after 5. Ahmed decides when he runs it.
+- **How the scripts behave:**
+  - `apply.ps1` shows every setting's current and new value, and asks once for confirmation
+    (`-WhatIf` changes nothing).
+  - It then saves the backup, applies the changes and re-reads each value, and undoes
+    everything if any change fails.
+  - `undo.ps1` restores a backup, re-reads each value, and deletes any empty registry keys
+    that `apply.ps1` created.
+- **Testing:**
+  - Python tests drive the PowerShell module through Windows PowerShell against throwaway HKCU
+    keys, so no administrator is needed.
+  - CI's Windows job applies and undoes every fix on GitHub's throwaway runner and checks that
+    nothing is left changed.
+- **Expected effect:**
+  - An ECC rating needs every check of a control to pass, so most technical controls stay
+    Partially implemented even when many of their checks start passing. The compare view
+    therefore also lists passing checks per control, and a Remediation section lists each fix
+    with its checks before and after.
+  - 2-7-2 should move from Not implemented to Partially implemented.
+  - 2-10-3 reaches Implemented only if the five high-severity vulnerabilities are patched.
+- **Outputs:**
+  - a Remediation workbook sheet, between Roadmap and the SAMA view, and a Remediation report
+    section;
+  - dates print without a leading zero;
+  - the PDF runs to about 25 pages, because of the 108-control table and the mapping appendix,
+    rather than 10-15.
+- **Publishing, proposed for Ahmed to confirm:**
+  - code under the MIT licence;
+  - a NOTICE that credits NCA (the ECC text in `catalog.yaml`), Wazuh (the GPLv2 SCA policy
+    behind `cis_checks.yaml`), CIS (benchmark titles) and SAMA (framework structure).
+
+  The public repository is created only after Ahmed confirms it and the commit email.
+- Plan: `docs/superpowers/plans/2026-10-09-ecc-plan-3-remediation.md`.
