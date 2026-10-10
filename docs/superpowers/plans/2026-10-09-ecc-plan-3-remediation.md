@@ -3055,7 +3055,7 @@ Claude prepares the commands and explains them; Ahmed runs every one of them him
 
 Before this task:
 - The final review must be fixed and the branch merged, so that `remediation/` is on `main`.
-- With Ahmed's agreement, CI's Windows apply-and-undo job should have passed once on a private copy of the repository. That way his PC is not the first real Windows run of the scripts.
+- With Ahmed's agreement, CI's Windows apply-and-undo job should have passed once on a private copy of the repository. That way his PC is not the first real Windows run of the scripts. Push only the branch: GitHub Free has no Pages for private repositories, so the Pages workflow would fail there.
 - If he prefers not to push yet, step 2 below gives backups that do not depend on the scripts.
 
 1. Open **Windows PowerShell as administrator** (right-click, Run as administrator), then `cd` to the repository.
@@ -3064,7 +3064,9 @@ Before this task:
    Checkpoint-Computer -Description 'Before ECC fixes'
    auditpol /backup /file:$HOME\Documents\audit-before.csv
    net accounts > $HOME\Documents\accounts-before.txt
+   Get-ComputerRestorePoint | Select-Object -Last 1
    ```
+   The last command confirms the restore point exists. Windows skips a new one, with only a warning, if one was made in the last 24 hours, and fails if System Protection is off. To use these backups instead of `undo.ps1`, use System Restore, or run `auditpol /restore /file:$HOME\Documents\audit-before.csv` and set the values in `accounts-before.txt` again with `net accounts`.
 3. Preview without changing anything:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1 -WhatIf
@@ -3085,7 +3087,7 @@ Before this task:
    powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1 -WhatIf
    Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, LogBlocked, LogAllowed, LogFileName
    ```
-   The second command must report "0 of 54 settings will change" (or 0 of 57). The third must show logging on for all three profiles.
+   The second command must report "0 of 54 settings will change" (or 0 of 57). Its warning that earlier backups exist is expected. The third must show logging on for all three profiles; if it still shows logging off, restart the PC and check again.
 7. Optional, for ECC 2-10-3: install pending Windows updates, and update or remove the apps that the Wazuh dashboard lists under Vulnerability Detection with High severity. Note what was patched, so the report can tell these changes apart from the fixes. Updates may restart the PC.
 8. Start Docker and Wazuh if they are not running. Restart the agent so it scans again, then wait until the dashboard's Configuration Assessment shows a scan time after the change:
    ```powershell
@@ -3115,7 +3117,7 @@ What Ahmed will notice afterwards:
 
 The work in this task depends on the real after snapshot, so Claude writes it after Task 6 rather than copying it from this plan.
 
-1. Commit the reviewed snapshot: `git add snapshots/2026-10-after.json`.
+1. Commit the reviewed snapshot: `git add snapshots/<yyyy-mm>-after.json`.
 2. Run `.venv/Scripts/python -m ecc build --before baseline --after after` and record the figures:
    - overall and per-domain compliance before and after;
    - the controls that changed status;
