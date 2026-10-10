@@ -14,7 +14,7 @@
 - Spec section 8, and spec section 15 (added with this plan): `docs/superpowers/specs/2026-10-08-ecc-gap-assessment-design.md`.
 
 Every code block and data file below was applied to a copy of the repository and verified before this plan was written:
-- Test counts after each task: Task 1 257, Task 2 272, Task 3 277, Task 4 279.
+- Test counts after each task: Task 1 259, Task 2 283, Task 3 288, Task 4 290.
 - ruff is clean and `check` passes after every task.
 - A read-only dry run of the real fix list on WS-01 showed all 57 settings with their current and new values.
 - A simulated after snapshot (every fix applied, high-severity vulnerabilities patched) gives 27.0% and 176 of 473 checks passing.
@@ -243,6 +243,8 @@ def item_with(**changes):
         {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\n"},
         {"name": "Run'; Start-Process calc; '"},
         {"name": ""},
+        {"path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Exclusions\\Paths"},
         {"type": "QWord"},
         {"value": "1"},
         {"value": -1},
@@ -877,6 +879,8 @@ REGISTRY_PATTERN = (
     r"|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$"
 )
 REGISTRY_NAME_PATTERN = r"^[A-Za-z0-9_]+$"
+# Keys a fix may never touch, even under a policy root: autostart lists and Defender exclusions.
+DENIED_REGISTRY_KEYS = frozenset({"run", "runonce", "exclusions"})
 AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$"
 ```
 
@@ -902,6 +906,12 @@ class RegistryItem(Strict):
     name: str = Field(pattern=REGISTRY_NAME_PATTERN)
     type: Literal["DWord", "String"]
     value: int | str
+
+    @model_validator(mode="after")
+    def _not_an_autostart_key(self) -> RegistryItem:
+        if DENIED_REGISTRY_KEYS & {part.lower() for part in self.path.split("\\")}:
+            raise ValueError("a fix may not touch Run, RunOnce or Defender exclusion keys")
+        return self
 
     @model_validator(mode="after")
     def _value_fits_type(self) -> RegistryItem:
@@ -1127,7 +1137,7 @@ def fix_results(
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `257 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `259 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`: `OK: 108 controls, 482 checks, 1 snapshot(s).`
 
@@ -1220,6 +1230,7 @@ DESKTOP-TEST1,System,Process Creation,{0CCE922B-69AE-11D9-BED3-505054503030},No 
 
 CREDENTIAL_VALIDATION = "{0CCE923F-69AE-11D9-BED3-505054503030}"
 RUN_KEY = "Microsoft\\Windows\\CurrentVersion\\Run"
+POLICIES = "Microsoft\\Windows\\CurrentVersion\\Policies"
 
 
 def run_file(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -1273,6 +1284,8 @@ $default = @(Get-FixItems -Path '{fixes}')
         (f"HKLM:\\SOFTWARE\\{RUN_KEY}", "Updater", "path"),
         (f"HKLM:\\SOFTWARE\\Policies\\..\\{RUN_KEY}", "Updater", "path"),
         ("HKLM:\\SOFTWARE\\Policies\\Microsoft\\*", "Updater", "path"),
+        (f"HKLM:\\SOFTWARE\\{POLICIES}\\Explorer\\Run", "Updater", "path"),
+        ("HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Exclusions", "x", "path"),
         ("HKLM:\\SOFTWARE\\Policies\\Microsoft", "Up'; Start-Process calc; '", "value name"),
     ],
 )
@@ -1429,6 +1442,121 @@ Invoke-Undo -Backup $backup
     }
 
 
+def test_a_failed_restore_does_not_stop_the_others(tmp_path, key):
+    found = result(
+        tmp_path,
+        f"""
+$key = '{key}'
+$null = New-Item -Path $key
+$null = New-ItemProperty -LiteralPath $key -Name A -PropertyType DWord -Value 1
+$null = New-ItemProperty -LiteralPath $key -Name B -PropertyType DWord -Value 2
+function Saved($fix, $name, $value) {{
+    [pscustomobject]@{{
+        kind = 'registry'; fix = $fix; path = $key; name = $name
+        exists = $true; type = 'DWord'; value = $value
+    }}
+}}
+$backup = [pscustomobject]@{{
+    format = 1; created_keys = @()
+    items = @((Saved 'F01' 'A' 7), (Saved 'F02' 'Bad' 'not a number'), (Saved 'F03' 'B' 8))
+}}
+$message = ''
+try {{ Invoke-Undo -Backup $backup }} catch {{ $message = $_.Exception.Message }}
+$restored = Get-Item -LiteralPath $key
+@{{
+    a = $restored.GetValue('A')
+    b = $restored.GetValue('B')
+    namesBad = $message.Contains('\\Bad (')
+}} | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"a": 7, "b": 8, "namesBad": True}
+
+
+def test_only_empty_created_keys_are_removed(tmp_path, key):
+    found = result(
+        tmp_path,
+        f"""
+$key = '{key}'
+$null = New-Item -Path (Join-Path $key 'Empty') -Force
+$null = New-Item -Path (Join-Path $key 'Used') -Force
+$null = New-ItemProperty -LiteralPath (Join-Path $key 'Used') -Name Other -Value 'kept'
+Remove-EmptyKeys -Keys @((Join-Path $key 'Empty'), (Join-Path $key 'Used'))
+@{{
+    empty = Test-Path -LiteralPath (Join-Path $key 'Empty')
+    used = Test-Path -LiteralPath (Join-Path $key 'Used')
+}} | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"empty": False, "used": True}
+
+
+ALLOWED = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
+
+
+@pytest.mark.parametrize(
+    ("items", "created", "message"),
+    [
+        (
+            [{"kind": "account", "fix": "F07", "option": "uniquepw", "value": '5" /maxpwage:1 "'}],
+            [],
+            "Backup entry for net accounts /uniquepw is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "audit",
+                    "fix": "F02",
+                    "guid": CREDENTIAL_VALIDATION,
+                    "subcategory": "Credential Validation",
+                    "value": 7,
+                }
+            ],
+            [],
+            "Backup entry for Audit Credential Validation is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "registry",
+                    "fix": "F11",
+                    "path": ALLOWED,
+                    "name": "EnableMulticast",
+                    "exists": "yes",
+                    "type": "DWord",
+                    "value": 0,
+                }
+            ],
+            [],
+            "is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "registry",
+                    "fix": "F11",
+                    "path": [ALLOWED, 0],
+                    "name": "EnableMulticast",
+                    "exists": False,
+                    "type": None,
+                    "value": None,
+                }
+            ],
+            [],
+            "Registry path not allowed",
+        ),
+        ([], [f"HKLM:\\SOFTWARE\\{POLICIES}\\Explorer\\Run"], "Registry path not allowed"),
+    ],
+)
+def test_a_crafted_backup_is_refused(tmp_path, items, created, message):
+    path = tmp_path / "backup.json"
+    backup = {"format": 1, "taken_at": "2026-10-10T00:00:00Z", "created_keys": created}
+    path.write_text(json.dumps({**backup, "items": items}), encoding="utf-8")
+    done = powershell(tmp_path, f"Read-Backup -Path '{path}' | Out-Null")
+    assert done.returncode != 0
+    assert message in done.stderr
+
+
 def test_a_failed_change_undoes_the_others(tmp_path, key):
     found = result(
         tmp_path,
@@ -1482,13 +1610,17 @@ Create `remediation/Remediation.psm1`:
 # Used by apply.ps1 and undo.ps1. Written for Windows PowerShell 5.1.
 
 Set-StrictMode -Version Latest
+# Every failure stops the function, however the calling script was started.
+$ErrorActionPreference = 'Stop'
 
 # Fixes may only touch policy keys and the two security-option keys under Control. Key and value
 # names use plain characters only, so a path cannot climb out with '..' or match keys with '*'.
 $RegistryKey = '\\[A-Za-z0-9_-][A-Za-z0-9 _-]*'
 $AllowedRegistryPath = "^HKLM:\\(SOFTWARE\\Policies($RegistryKey)+|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies($RegistryKey)+|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))\z"
 $AllowedRegistryName = '^[A-Za-z0-9_]+\z'
-$AuditGuidPattern = '^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$'
+# Keys a fix may never touch, even under a policy root: autostart lists and Defender exclusions.
+$DeniedRegistryKeys = @('Run', 'RunOnce', 'Exclusions')
+$AuditGuidPattern = '^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}\z'
 $AuditBits = @{ success = 1; failure = 2; both = 3 }
 $AuditNames = @('No auditing', 'Success', 'Failure', 'Success and Failure')
 
@@ -1514,21 +1646,60 @@ function Assert-Administrator {
     }
 }
 
+function Test-AllowedRegistryPath {
+    param([Parameter(Mandatory = $true)] [AllowNull()] $Path)
+    if ($Path -isnot [string] -or $Path -notmatch $AllowedRegistryPath) { return $false }
+    -not @($Path.Split('\') | Where-Object { $DeniedRegistryKeys -contains $_ }).Count
+}
+
+function Test-WholeNumber {
+    param([AllowNull()] $Value, [long] $Min, [long] $Max)
+    ($Value -is [int] -or $Value -is [long]) -and $Value -ge $Min -and $Value -le $Max
+}
+
 function Assert-ItemAllowed {
-    # Refuse anything outside the three kinds of change the project allows.
+    # Refuse anything outside the three kinds of change the project allows. Every field must be a
+    # single string, so an array or an injected switch cannot slip through a pattern match.
     param([Parameter(Mandatory = $true)] $Item)
+    if ($Item.kind -isnot [string]) { throw "Unknown kind of change: $($Item.kind)" }
     switch ($Item.kind) {
         'registry' {
-            if ($Item.path -notmatch $AllowedRegistryPath) { throw "Registry path not allowed: $($Item.path)" }
-            if ($Item.name -notmatch $AllowedRegistryName) { throw "Registry value name not allowed: $($Item.name)" }
+            if (-not (Test-AllowedRegistryPath $Item.path)) { throw "Registry path not allowed: $($Item.path)" }
+            if ($Item.name -isnot [string] -or $Item.name -notmatch $AllowedRegistryName) {
+                throw "Registry value name not allowed: $($Item.name)"
+            }
         }
         'audit' {
-            if ($Item.guid -notmatch $AuditGuidPattern) { throw "Not an audit subcategory GUID: $($Item.guid)" }
+            if ($Item.guid -isnot [string] -or $Item.guid -notmatch $AuditGuidPattern) {
+                throw "Not an audit subcategory GUID: $($Item.guid)"
+            }
         }
         'account' {
-            if (-not $AccountLabels.Contains([string]$Item.option)) { throw "Unknown account option: $($Item.option)" }
+            if ($Item.option -isnot [string] -or -not $AccountLabels.Contains($Item.option)) {
+                throw "Unknown account option: $($Item.option)"
+            }
         }
         default { throw "Unknown kind of change: $($Item.kind)" }
+    }
+}
+
+function Assert-StateValid {
+    # A backup entry must hold only what Get-ItemState records: nothing that could become a switch.
+    param([Parameter(Mandatory = $true)] $State)
+    Assert-ItemAllowed $State
+    $label = Get-StateLabel $State
+    switch ($State.kind) {
+        'registry' {
+            $valid = $State.exists -is [bool]
+            if ($valid -and $State.exists) {
+                if ($State.type -eq 'DWord') { $valid = Test-WholeNumber $State.value -2147483648 4294967295 }
+                elseif ($State.type -in @('String', 'ExpandString')) { $valid = $State.value -is [string] }
+                else { $valid = $false }
+            }
+            if (-not $valid) { throw "Backup entry for $label is not valid." }
+        }
+        'audit' { if (-not (Test-WholeNumber $State.value 0 3)) { throw "Backup entry for $label is not valid." } }
+        'account' { if (-not (Test-WholeNumber $State.value 0 99999)) { throw "Backup entry for $label is not valid." } }
     }
 }
 
@@ -1541,11 +1712,19 @@ function Get-FixItems {
         if ($optional -and -not $IncludeOptional) { continue }
         foreach ($item in $fix.items) {
             Assert-ItemAllowed $item
-            if ($item.kind -eq 'registry' -and $item.type -notin @('DWord', 'String')) {
-                throw "Unsupported registry type: $($item.type)"
+            if ($item.kind -eq 'registry') {
+                $fits = switch ($item.type) {
+                    'DWord' { Test-WholeNumber $item.value 0 4294967295 }
+                    'String' { $item.value -is [string] }
+                    default { $false }
+                }
+                if (-not $fits) { throw "Unsupported registry type or value: $($item.type) $($item.value)" }
             }
             if ($item.kind -eq 'audit' -and -not $AuditBits.ContainsKey([string]$item.require)) {
                 throw "Unknown audit requirement: $($item.require)"
+            }
+            if ($item.kind -eq 'account' -and -not (Test-WholeNumber $item.value 0 999)) {
+                throw "Account value must be a whole number from 0 to 999: $($item.value)"
             }
             $copy = $item.PSObject.Copy()
             $copy | Add-Member -NotePropertyName fix -NotePropertyValue $fix.id
@@ -1603,7 +1782,8 @@ function Get-AuditSettings {
         ConvertFrom-AuditBackup -Lines (Get-Content -LiteralPath $file)
     }
     finally {
-        Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue
+        # -WhatIf on apply.ps1 must not keep this file, so this removal ignores it.
+        Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue -WhatIf:$false -Confirm:$false
     }
 }
 
@@ -1777,8 +1957,9 @@ function Set-ItemState {
             if ($LASTEXITCODE -ne 0) { throw "auditpol could not set $($State.subcategory) (exit code $LASTEXITCODE)." }
         }
         'account' {
-            $null = & net.exe accounts "/$($State.option):$($State.value)"
-            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set /$($State.option):$($State.value) (exit code $LASTEXITCODE)." }
+            $setting = '/{0}:{1}' -f $State.option, [int]$State.value
+            $null = & net.exe accounts $setting
+            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
         }
     }
 }
@@ -1802,7 +1983,7 @@ function Save-Backup {
     )
     $null = New-Item -ItemType Directory -Path $Directory -Force
     $now = (Get-Date).ToUniversalTime()
-    $path = Join-Path $Directory ($now.ToString('yyyyMMdd-HHmmss') + '.json')
+    $path = Join-Path $Directory ($now.ToString('yyyyMMdd-HHmmss-fff') + '.json')
     $backup = [ordered]@{
         format       = 1
         taken_at     = $now.ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -1819,22 +2000,29 @@ function Read-Backup {
     if (-not ($backup.PSObject.Properties.Name -contains 'format') -or $backup.format -ne 1) {
         throw "$Path is not a backup written by apply.ps1."
     }
-    foreach ($state in $backup.items) { Assert-ItemAllowed $state }
+    foreach ($state in $backup.items) { Assert-StateValid $state }
     foreach ($key in $backup.created_keys) {
-        if ($key -notmatch $AllowedRegistryPath) { throw "Registry path not allowed: $key" }
+        if (-not (Test-AllowedRegistryPath $key)) { throw "Registry path not allowed: $key" }
     }
     $backup
 }
 
 function Invoke-Undo {
-    # Put every setting back as the backup recorded it, last change first.
+    # Put every setting back as the backup recorded it, last change first. A setting that cannot be
+    # restored does not stop the others; every problem is reported together at the end.
     param([Parameter(Mandatory = $true)] $Backup)
     $states = @($Backup.items)
     [array]::Reverse($states)
-    foreach ($state in $states) { Set-ItemState $state }
-    Remove-EmptyKeys -Keys @($Backup.created_keys)
-    $mismatches = @(Find-Mismatches -Expected $states)
-    if ($mismatches.Count) { throw "These settings were not restored: $($mismatches -join ', ')" }
+    $problems = @()
+    foreach ($state in $states) {
+        try { Set-ItemState $state }
+        catch { $problems += "$(Get-StateLabel $state) ($($_.Exception.Message))" }
+    }
+    try { Remove-EmptyKeys -Keys @($Backup.created_keys) }
+    catch { $problems += "removing the keys apply.ps1 created ($($_.Exception.Message))" }
+    try { $problems += @(Find-Mismatches -Expected $states) }
+    catch { $problems += "checking the restored values ($($_.Exception.Message))" }
+    if ($problems.Count) { throw "These settings were not restored: $($problems -join '; ')" }
 }
 
 function Invoke-Apply {
@@ -1851,9 +2039,13 @@ function Invoke-Apply {
         if ($mismatches.Count) { throw "These settings did not take effect: $($mismatches -join ', ')" }
     }
     catch {
-        Write-Warning "A change failed, so every change is being undone from $backupPath."
-        Invoke-Undo -Backup (Get-Content -LiteralPath $backupPath -Raw -Encoding UTF8 | ConvertFrom-Json)
-        throw
+        $failure = $_.Exception.Message
+        Write-Warning "A change failed ($failure), so every change is being undone from $backupPath."
+        try { Invoke-Undo -Backup (Get-Content -LiteralPath $backupPath -Raw -Encoding UTF8 | ConvertFrom-Json) }
+        catch {
+            throw "A change failed ($failure), and undoing it was not complete: $($_.Exception.Message) Run undo.ps1 with $backupPath."
+        }
+        throw "A change failed ($failure). Every change was undone from $backupPath."
     }
     $backupPath
 }
@@ -1897,10 +2089,16 @@ Format-Plan -Plan $plan | Format-Table -AutoSize -Wrap | Out-String -Width 200 |
 $changing = Get-ChangeCount -Plan $plan
 Write-Host "$changing of $($plan.Count) settings will change."
 if (-not $IncludeLockout) { Write-Host 'F08 (account lockout) is left out; add -IncludeLockout to apply it.' }
+$backups = Join-Path $PSScriptRoot 'backups'
+$earlier = @(Get-ChildItem -Path $backups -Filter '*.json' -ErrorAction SilentlyContinue)
+if ($earlier.Count) {
+    Write-Warning ("remediation\backups already holds $($earlier.Count) backup(s). This run backs up " +
+        'the values as they are now; to get back to the original settings, undo every backup, newest first.')
+}
 
 if (-not $PSCmdlet.ShouldProcess('this PC', "Change $changing Windows settings")) { return }
 
-$backup = Invoke-Apply -Plan $plan -BackupDirectory (Join-Path $PSScriptRoot 'backups')
+$backup = Invoke-Apply -Plan $plan -BackupDirectory $backups
 Write-Host "Done. Every setting was checked after the change."
 Write-Host "Backup of the old values: $backup"
 Write-Host "To undo: powershell -ExecutionPolicy Bypass -File .\remediation\undo.ps1 -Backup `"$backup`""
@@ -1944,7 +2142,7 @@ Write-Host "Restored $count settings from $Backup. Every value was checked after
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `272 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `283 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - This command, which must print `0 parse errors` for each file:
 
@@ -2267,7 +2465,7 @@ with:
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `277 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `288 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc build --no-pdf`: `26.0% compliant (baseline)`. The single-snapshot report shows "12 reversible fixes are planned".
 
@@ -2571,7 +2769,7 @@ business changes significantly. Changes are recorded and approved by the General
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `279 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
+- `.venv/Scripts/python -m pytest -q -W error`: `290 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`
 
