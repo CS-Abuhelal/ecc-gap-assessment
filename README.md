@@ -113,6 +113,12 @@ On a Windows PC with Wazuh:
 | `tools/` | Generators and the fix checker |
 | `docs/superpowers/` | The design spec and the implementation plans the project was built from |
 
+## How it was built
+
+I built this with help from Claude Code, an AI coding assistant. It wrote much of the code and
+text from the design spec and plans in `docs/superpowers/`, and every change was tested and
+reviewed before it was merged. I ran the Wazuh scans and applied the fixes on my own PC myself.
+
 ## Licence
 
 The code is released under the MIT licence (see `LICENSE`). Some data files keep their sources'
