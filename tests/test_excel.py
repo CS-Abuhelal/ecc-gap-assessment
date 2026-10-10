@@ -1,3 +1,5 @@
+import dataclasses
+
 from openpyxl import load_workbook
 
 from ecc.assess import assess
@@ -131,7 +133,7 @@ def test_the_sama_sheet(tmp_path, dataset, baseline):
 
 def test_the_remediation_sheet_compares_two_snapshots(tmp_path, dataset, baseline, after):
     sheet = workbook(tmp_path, dataset, after, baseline)["Remediation"]
-    header = ["CIS checks", "Checks", "ECC controls", "baseline passing", "after passing"]
+    header = ["CIS checks", "Number of checks", "ECC controls", "baseline passing", "after passing"]
     assert values(sheet, 1)[5:] == header
     assert values(sheet, 2)[0] == "F01"
     assert values(sheet, 3)[4:] == ["Yes, applied", "26139", 1, "2-12-3", 0, 1]
@@ -141,3 +143,10 @@ def test_the_remediation_sheet_for_one_snapshot(tmp_path, dataset, baseline):
     sheet = workbook(tmp_path, dataset, baseline)["Remediation"]
     assert values(sheet, 1)[-2:] == ["ECC controls", "baseline passing"]
     assert values(sheet, 2)[-1] == 0
+
+
+def test_a_fix_left_out_shows_as_not_applied(tmp_path, dataset, baseline, after):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    changed = dataclasses.replace(dataset, report=report)
+    sheet = workbook(tmp_path, changed, after, baseline)["Remediation"]
+    assert values(sheet, 3)[4:] == ["Yes, not applied", "26139", 1, "2-12-3"] + ["Not applied"] * 2

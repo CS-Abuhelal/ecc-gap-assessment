@@ -70,6 +70,43 @@ def test_an_unknown_check_is_caught():
     assert found == ["F02: check 99999 is not in the policy"]
 
 
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ({"condition": "any"}, "its condition is 'any'"),
+        (
+            {"rules": [r'not c:auditpol.exe /get /subcategory:"Credential Validation" -> r:No'
+                       r" Auditing"]},
+            "it has a rule this script does not read",
+        ),
+    ],
+)
+def test_checks_it_cannot_read_are_reported_not_passed(change, reason):
+    policy = copy.deepcopy(POLICY)
+    policy["checks"][2].update(change)
+    found = problems(policy, fixes_with())
+    assert len(found) == 1
+    assert found[0].startswith(f"F02: check 26139 cannot be verified: {reason}")
+
+
+LOG_SIZE = r"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security"
+
+
+@pytest.mark.parametrize(("value", "ok"), [(196608, True), (200000, True), (32768, False)])
+def test_registry_numbers_are_compared(value, ok):
+    item = {
+        "kind": "registry",
+        "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Security",
+        "name": "MaxSize",
+        "type": "DWord",
+        "value": value,
+    }
+    fix = {"id": "F04", "title": "t", "why": "w", "effect": "e", "checks": [26376], "items": [item]}
+    rule = f"r:{LOG_SIZE} -> MaxSize -> n:^(\\d+) compare >= 196608"
+    policy = {"checks": [{"id": 26376, "condition": "all", "rules": [rule]}]}
+    assert (problems(policy, {"fixes": [fix]}) == []) is ok
+
+
 @pytest.mark.skipif(not DEFAULT_POLICY.is_file(), reason="needs the Wazuh agent's SCA policy")
 def test_the_real_fixes_match_the_installed_wazuh_policy(capsys):
     assert main(["check_fixes", str(DEFAULT_POLICY), str(ROOT / DEFAULT_FIXES)]) == 0

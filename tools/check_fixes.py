@@ -81,15 +81,30 @@ def satisfies(item: dict[str, Any], rule: str) -> bool:
     return False
 
 
+def unverifiable(check: dict[str, Any]) -> str | None:
+    """Why this script cannot judge a check, or None. Only 'all' checks of plain rules are read."""
+    condition = check.get("condition", "all")
+    if condition != "all":
+        return f"its condition is '{condition}'"
+    for rule in check["rules"]:
+        if not rule.startswith(("r:", "c:")):
+            return f"it has a rule this script does not read: {rule}"
+    return None
+
+
 def problems(policy: dict[str, Any], fixes: dict[str, Any]) -> list[str]:
-    rules = {int(check["id"]): check["rules"] for check in policy["checks"]}
+    checks = {int(check["id"]): check for check in policy["checks"]}
     found: list[str] = []
     for fix in fixes["fixes"]:
         for check in fix["checks"]:
-            if check not in rules:
+            if check not in checks:
                 found.append(f"{fix['id']}: check {check} is not in the policy")
                 continue
-            for rule in filter(is_value_rule, rules[check]):
+            reason = unverifiable(checks[check])
+            if reason:
+                found.append(f"{fix['id']}: check {check} cannot be verified: {reason}")
+                continue
+            for rule in filter(is_value_rule, checks[check]["rules"]):
                 if not any(satisfies(item, rule) for item in fix["items"]):
                     found.append(f"{fix['id']}: no item satisfies check {check}: {rule}")
     return found

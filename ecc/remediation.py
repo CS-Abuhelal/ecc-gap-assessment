@@ -11,13 +11,16 @@ from ecc.models import CisCheck, Fix, Snapshot
 
 @dataclass(frozen=True)
 class FixResult:
-    """A fix with its ECC controls and passing checks. `applied` is None without a before."""
+    """A fix with its ECC controls and passing checks.
+
+    `applied` is False only for an optional fix missing from report.yaml's optional_fixes_applied.
+    """
 
     fix: Fix
     controls: tuple[str, ...]
     before: int | None
     after: int
-    applied: bool | None
+    applied: bool
 
 
 @dataclass(frozen=True)
@@ -57,15 +60,21 @@ def fix_results(
                 controls=tuple(sorted(controls, key=control_key)),
                 before=passing(before, fix.checks) if before is not None else None,
                 after=passing(after, fix.checks),
-                applied=None if before is None else not fix.optional or fix.id in chosen,
+                applied=not fix.optional or fix.id in chosen,
             )
         )
     return tuple(rows)
 
 
 def other_changes(dataset: Dataset, before: Snapshot, after: Snapshot) -> tuple[CheckChange, ...]:
-    """CIS checks that no fix targets but whose result changed between the two snapshots."""
-    targeted = {check for fix in dataset.fixes.fixes for check in fix.checks}
+    """CIS checks that no applied fix targets but whose result changed between two snapshots."""
+    chosen = set(dataset.report.optional_fixes_applied)
+    targeted = {
+        check
+        for fix in dataset.fixes.fixes
+        if not fix.optional or fix.id in chosen
+        for check in fix.checks
+    }
     old = {check.id: check.result for check in before.checks}
     new = {check.id: check.result for check in after.checks}
     return tuple(

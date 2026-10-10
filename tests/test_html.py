@@ -201,6 +201,15 @@ def test_an_optional_fix_left_out_is_marked_and_not_counted(dataset, baseline, a
     assert '<td>2-12-3</td><td class="nowrap">Not applied</td>' in html
 
 
+def test_a_single_snapshot_report_also_marks_a_fix_left_out(dataset, baseline):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    changed = dataclasses.replace(dataset, report=report)
+    html = render_html(changed, assess(changed, baseline))
+    assert "the optional F02 is left out" in html
+    assert "<b>0 of 1 targeted checks pass</b>." in html
+    assert '<td>2-12-3</td><td class="nowrap">Not applied</td>' in html
+
+
 def test_checks_changed_outside_the_fixes_are_listed(dataset, baseline, after):
     results = tuple(
         check.model_copy(update={"result": "failed"}) if check.id == 26001 else check
@@ -208,6 +217,6 @@ def test_checks_changed_outside_the_fixes_are_listed(dataset, baseline, after):
     )
     later = after.model_copy(update={"checks": results})
     html = render_html(dataset, assess(dataset, later), assess(dataset, baseline))
-    assert "No fix targets these checks" in html
+    assert "No applied fix targets these checks" in html
     assert "<td>26001</td><td>1.1.2</td>" in html
     assert "<td>passed</td><td>failed</td>" in html

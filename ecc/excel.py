@@ -258,17 +258,22 @@ def write_sama(sheet: Worksheet, dataset: Dataset, after: Assessment) -> None:
 def optional_label(row: FixResult) -> str:
     if not row.fix.optional:
         return "No"
-    if row.applied is None:
-        return "Yes"
     return "Yes, applied" if row.applied else "Yes, not applied"
+
+
+def passing_cells(row: FixResult, comparing: bool) -> list[int | str | None]:
+    """The passing counts, or 'Not applied' for an optional fix that was left out."""
+    if not row.applied:
+        return ["Not applied"] * (2 if comparing else 1)
+    return [row.before, row.after] if comparing else [row.after]
 
 
 def write_remediation(
     sheet: Worksheet, dataset: Dataset, after: Assessment, before: Assessment | None
 ) -> None:
     rows = fix_results(dataset, after.snapshot, before.snapshot if before is not None else None)
-    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks", "Checks"]
-    header.append("ECC controls")
+    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks"]
+    header += ["Number of checks", "ECC controls"]
     if before is not None:
         header.append(f"{before.snapshot.label} passing")
     header.append(f"{after.snapshot.label} passing")
@@ -285,12 +290,11 @@ def write_remediation(
                 ", ".join(str(check) for check in row.fix.checks),
                 len(row.fix.checks),
                 ", ".join(row.controls),
-                *([row.before] if before is not None else []),
-                row.after,
+                *passing_cells(row, before is not None),
             ]
             for row in rows
         ],
-        [6, 36, 48, 48, 16, 30, 8, 18, 12, 12],
+        [6, 36, 48, 48, 16, 30, 10, 18, 12, 12],
         autofilter=True,
     )
 

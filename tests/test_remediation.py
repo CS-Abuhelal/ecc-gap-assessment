@@ -74,7 +74,7 @@ def test_an_optional_fix_counts_as_applied_only_when_listed(dataset, baseline, a
     report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
     unlisted = fix_results(dataclasses.replace(dataset, report=report), after, baseline)
     assert [row.applied for row in unlisted] == [True, False]
-    assert [row.applied for row in fix_results(dataset, baseline)] == [None, None]
+    assert [row.applied for row in fix_results(dataset, baseline)] == [True, True]
 
 
 def test_changes_outside_the_fixes_are_listed(dataset, baseline, after):
@@ -85,3 +85,9 @@ def test_changes_outside_the_fixes_are_listed(dataset, baseline, after):
     ]
     changed = other_changes(dataset, baseline, after.model_copy(update={"checks": tuple(results)}))
     assert [(c.check.id, c.before, c.after) for c in changed] == [(26001, "passed", "failed")]
+
+
+def test_checks_of_a_fix_left_out_count_as_outside_the_fixes(dataset, baseline, after):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    unlisted = dataclasses.replace(dataset, report=report)
+    assert [c.check.id for c in other_changes(unlisted, baseline, after)] == [26139]

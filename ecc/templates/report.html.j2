@@ -142,7 +142,7 @@ a { color: var(--link); }
 {% endif %}
 <h3>CIS checks that changed outside the fixes</h3>
 {% if other_changes %}
-<p class="note">No fix targets these checks, so other changes on the PC, such as Windows updates, moved them.</p>
+<p class="note">No applied fix targets these checks, so something else on the PC changed them, for example a Windows update.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Check</th><th>CIS</th><th>Title</th><th>{{ before_snapshot.label }}</th><th>{{ snapshot.label }}</th></tr></thead>
 <tbody>
@@ -206,13 +206,12 @@ a { color: var(--link); }
 
 {% if fixes %}
 <h2>Remediation on {{ snapshot.host }}</h2>
-{% if before_snapshot %}
 {% set left_out = fixes|rejectattr("applied")|map(attribute="fix.id")|list %}
 {% set counted = fixes|selectattr("applied")|list %}
+{% if before_snapshot %}
 <p class="note">The fixes in remediation/fixes.json were applied with remediation/apply.ps1 between the &ldquo;{{ before_snapshot.label }}&rdquo; and &ldquo;{{ snapshot.label }}&rdquo; snapshots{% if left_out %}, except the optional {{ left_out|join(", ") }}, which {{ "was" if left_out|length == 1 else "were" }} left out{% endif %}. Each row counts the fix's own CIS checks that pass, out of all the checks it targets.</p>
 {% else %}
-{% set counted = fixes %}
-<p class="note">{{ fixes|length }} reversible fixes are listed in remediation/fixes.json. remediation/apply.ps1 applies them after saving the old values, and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass in this snapshot, out of all the checks it targets.</p>
+<p class="note">{{ fixes|length }} reversible fixes are listed in remediation/fixes.json{% if left_out %}; the optional {{ left_out|join(", ") }} {{ "is" if left_out|length == 1 else "are" }} left out{% endif %}. remediation/apply.ps1 applies them after saving the old values (an optional fix only when chosen), and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass in this snapshot, out of all the checks it targets.</p>
 {% endif %}
 <p><b>{{ counted|sum(attribute="after") }} of {{ counted|map(attribute="fix.checks")|map("length")|sum }} targeted checks pass</b>{% if before_snapshot %} (was {{ counted|sum(attribute="before") }}){% endif %}.</p>
 <div class="table-wrap"><table>
