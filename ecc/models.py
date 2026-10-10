@@ -14,12 +14,15 @@ SUBCONTROL_PATTERN = r"^[1-4]\.\d{1,2}\.\d{1,2}\.\d{1,2}$"
 CIS_PATTERN = r"^\d+(\.\d+)*$"
 LABEL_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
 FIX_PATTERN = r"^F\d{2}$"
-# Fixes may only touch policy keys and the two security-option keys under Control.
+# Fixes may only touch policy keys and the two security-option keys under Control. Key and value
+# names use plain characters only, so a path cannot climb out with '..' or match keys with '*'.
+REGISTRY_KEY = r"\\[A-Za-z0-9_-][A-Za-z0-9 _-]*"
 REGISTRY_PATTERN = (
-    r"^HKLM:\\(SOFTWARE\\Policies\\.+"
-    r"|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\.+"
+    rf"^HKLM:\\(SOFTWARE\\Policies({REGISTRY_KEY})+"
+    rf"|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies({REGISTRY_KEY})+"
     r"|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$"
 )
+REGISTRY_NAME_PATTERN = r"^[A-Za-z0-9_]+$"
 AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$"
 NOT_BLANK = r"\S"  # at least one character that is not whitespace
 HOST_PLACEHOLDER = "WS-01"
@@ -299,7 +302,7 @@ class RegistryItem(Strict):
 
     kind: Literal["registry"]
     path: str = Field(pattern=REGISTRY_PATTERN)
-    name: str = Field(min_length=1, pattern=NOT_BLANK)
+    name: str = Field(pattern=REGISTRY_NAME_PATTERN)
     type: Literal["DWord", "String"]
     value: int | str
 
