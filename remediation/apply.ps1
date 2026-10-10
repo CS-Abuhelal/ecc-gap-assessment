@@ -31,10 +31,16 @@ Format-Plan -Plan $plan | Format-Table -AutoSize -Wrap | Out-String -Width 200 |
 $changing = Get-ChangeCount -Plan $plan
 Write-Host "$changing of $($plan.Count) settings will change."
 if (-not $IncludeLockout) { Write-Host 'F08 (account lockout) is left out; add -IncludeLockout to apply it.' }
+$backups = Join-Path $PSScriptRoot 'backups'
+$earlier = @(Get-ChildItem -Path $backups -Filter '*.json' -ErrorAction SilentlyContinue)
+if ($earlier.Count) {
+    Write-Warning ("remediation\backups already holds $($earlier.Count) backup(s). This run backs up " +
+        'the values as they are now; to get back to the original settings, undo every backup, newest first.')
+}
 
 if (-not $PSCmdlet.ShouldProcess('this PC', "Change $changing Windows settings")) { return }
 
-$backup = Invoke-Apply -Plan $plan -BackupDirectory (Join-Path $PSScriptRoot 'backups')
+$backup = Invoke-Apply -Plan $plan -BackupDirectory $backups
 Write-Host "Done. Every setting was checked after the change."
 Write-Host "Backup of the old values: $backup"
 Write-Host "To undo: powershell -ExecutionPolicy Bypass -File .\remediation\undo.ps1 -Backup `"$backup`""

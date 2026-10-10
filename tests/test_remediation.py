@@ -41,6 +41,8 @@ def item_with(**changes):
         {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\n"},
         {"name": "Run'; Start-Process calc; '"},
         {"name": ""},
+        {"path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Exclusions\\Paths"},
         {"type": "QWord"},
         {"value": "1"},
         {"value": -1},

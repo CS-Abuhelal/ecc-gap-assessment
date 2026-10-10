@@ -59,6 +59,7 @@ DESKTOP-TEST1,System,Process Creation,{0CCE922B-69AE-11D9-BED3-505054503030},No 
 
 CREDENTIAL_VALIDATION = "{0CCE923F-69AE-11D9-BED3-505054503030}"
 RUN_KEY = "Microsoft\\Windows\\CurrentVersion\\Run"
+POLICIES = "Microsoft\\Windows\\CurrentVersion\\Policies"
 
 
 def run_file(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -112,6 +113,8 @@ $default = @(Get-FixItems -Path '{fixes}')
         (f"HKLM:\\SOFTWARE\\{RUN_KEY}", "Updater", "path"),
         (f"HKLM:\\SOFTWARE\\Policies\\..\\{RUN_KEY}", "Updater", "path"),
         ("HKLM:\\SOFTWARE\\Policies\\Microsoft\\*", "Updater", "path"),
+        (f"HKLM:\\SOFTWARE\\{POLICIES}\\Explorer\\Run", "Updater", "path"),
+        ("HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Exclusions", "x", "path"),
         ("HKLM:\\SOFTWARE\\Policies\\Microsoft", "Up'; Start-Process calc; '", "value name"),
     ],
 )
@@ -266,6 +269,121 @@ Invoke-Undo -Backup $backup
         "changes": 1,
         "backup": ["F01 1", "F02 (not set)"],
     }
+
+
+def test_a_failed_restore_does_not_stop_the_others(tmp_path, key):
+    found = result(
+        tmp_path,
+        f"""
+$key = '{key}'
+$null = New-Item -Path $key
+$null = New-ItemProperty -LiteralPath $key -Name A -PropertyType DWord -Value 1
+$null = New-ItemProperty -LiteralPath $key -Name B -PropertyType DWord -Value 2
+function Saved($fix, $name, $value) {{
+    [pscustomobject]@{{
+        kind = 'registry'; fix = $fix; path = $key; name = $name
+        exists = $true; type = 'DWord'; value = $value
+    }}
+}}
+$backup = [pscustomobject]@{{
+    format = 1; created_keys = @()
+    items = @((Saved 'F01' 'A' 7), (Saved 'F02' 'Bad' 'not a number'), (Saved 'F03' 'B' 8))
+}}
+$message = ''
+try {{ Invoke-Undo -Backup $backup }} catch {{ $message = $_.Exception.Message }}
+$restored = Get-Item -LiteralPath $key
+@{{
+    a = $restored.GetValue('A')
+    b = $restored.GetValue('B')
+    namesBad = $message.Contains('\\Bad (')
+}} | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"a": 7, "b": 8, "namesBad": True}
+
+
+def test_only_empty_created_keys_are_removed(tmp_path, key):
+    found = result(
+        tmp_path,
+        f"""
+$key = '{key}'
+$null = New-Item -Path (Join-Path $key 'Empty') -Force
+$null = New-Item -Path (Join-Path $key 'Used') -Force
+$null = New-ItemProperty -LiteralPath (Join-Path $key 'Used') -Name Other -Value 'kept'
+Remove-EmptyKeys -Keys @((Join-Path $key 'Empty'), (Join-Path $key 'Used'))
+@{{
+    empty = Test-Path -LiteralPath (Join-Path $key 'Empty')
+    used = Test-Path -LiteralPath (Join-Path $key 'Used')
+}} | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"empty": False, "used": True}
+
+
+ALLOWED = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
+
+
+@pytest.mark.parametrize(
+    ("items", "created", "message"),
+    [
+        (
+            [{"kind": "account", "fix": "F07", "option": "uniquepw", "value": '5" /maxpwage:1 "'}],
+            [],
+            "Backup entry for net accounts /uniquepw is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "audit",
+                    "fix": "F02",
+                    "guid": CREDENTIAL_VALIDATION,
+                    "subcategory": "Credential Validation",
+                    "value": 7,
+                }
+            ],
+            [],
+            "Backup entry for Audit Credential Validation is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "registry",
+                    "fix": "F11",
+                    "path": ALLOWED,
+                    "name": "EnableMulticast",
+                    "exists": "yes",
+                    "type": "DWord",
+                    "value": 0,
+                }
+            ],
+            [],
+            "is not valid",
+        ),
+        (
+            [
+                {
+                    "kind": "registry",
+                    "fix": "F11",
+                    "path": [ALLOWED, 0],
+                    "name": "EnableMulticast",
+                    "exists": False,
+                    "type": None,
+                    "value": None,
+                }
+            ],
+            [],
+            "Registry path not allowed",
+        ),
+        ([], [f"HKLM:\\SOFTWARE\\{POLICIES}\\Explorer\\Run"], "Registry path not allowed"),
+    ],
+)
+def test_a_crafted_backup_is_refused(tmp_path, items, created, message):
+    path = tmp_path / "backup.json"
+    backup = {"format": 1, "taken_at": "2026-10-10T00:00:00Z", "created_keys": created}
+    path.write_text(json.dumps({**backup, "items": items}), encoding="utf-8")
+    done = powershell(tmp_path, f"Read-Backup -Path '{path}' | Out-Null")
+    assert done.returncode != 0
+    assert message in done.stderr
 
 
 def test_a_failed_change_undoes_the_others(tmp_path, key):

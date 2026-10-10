@@ -23,6 +23,8 @@ REGISTRY_PATTERN = (
     r"|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$"
 )
 REGISTRY_NAME_PATTERN = r"^[A-Za-z0-9_]+$"
+# Keys a fix may never touch, even under a policy root: autostart lists and Defender exclusions.
+DENIED_REGISTRY_KEYS = frozenset({"run", "runonce", "exclusions"})
 AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$"
 NOT_BLANK = r"\S"  # at least one character that is not whitespace
 HOST_PLACEHOLDER = "WS-01"
@@ -305,6 +307,12 @@ class RegistryItem(Strict):
     name: str = Field(pattern=REGISTRY_NAME_PATTERN)
     type: Literal["DWord", "String"]
     value: int | str
+
+    @model_validator(mode="after")
+    def _not_an_autostart_key(self) -> RegistryItem:
+        if DENIED_REGISTRY_KEYS & {part.lower() for part in self.path.split("\\")}:
+            raise ValueError("a fix may not touch Run, RunOnce or Defender exclusion keys")
+        return self
 
     @model_validator(mode="after")
     def _value_fits_type(self) -> RegistryItem:

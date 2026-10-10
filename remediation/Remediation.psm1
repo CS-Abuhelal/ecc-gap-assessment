@@ -2,13 +2,17 @@
 # Used by apply.ps1 and undo.ps1. Written for Windows PowerShell 5.1.
 
 Set-StrictMode -Version Latest
+# Every failure stops the function, however the calling script was started.
+$ErrorActionPreference = 'Stop'
 
 # Fixes may only touch policy keys and the two security-option keys under Control. Key and value
 # names use plain characters only, so a path cannot climb out with '..' or match keys with '*'.
 $RegistryKey = '\\[A-Za-z0-9_-][A-Za-z0-9 _-]*'
 $AllowedRegistryPath = "^HKLM:\\(SOFTWARE\\Policies($RegistryKey)+|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies($RegistryKey)+|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))\z"
 $AllowedRegistryName = '^[A-Za-z0-9_]+\z'
-$AuditGuidPattern = '^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$'
+# Keys a fix may never touch, even under a policy root: autostart lists and Defender exclusions.
+$DeniedRegistryKeys = @('Run', 'RunOnce', 'Exclusions')
+$AuditGuidPattern = '^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}\z'
 $AuditBits = @{ success = 1; failure = 2; both = 3 }
 $AuditNames = @('No auditing', 'Success', 'Failure', 'Success and Failure')
 
@@ -34,21 +38,60 @@ function Assert-Administrator {
     }
 }
 
+function Test-AllowedRegistryPath {
+    param([Parameter(Mandatory = $true)] [AllowNull()] $Path)
+    if ($Path -isnot [string] -or $Path -notmatch $AllowedRegistryPath) { return $false }
+    -not @($Path.Split('\') | Where-Object { $DeniedRegistryKeys -contains $_ }).Count
+}
+
+function Test-WholeNumber {
+    param([AllowNull()] $Value, [long] $Min, [long] $Max)
+    ($Value -is [int] -or $Value -is [long]) -and $Value -ge $Min -and $Value -le $Max
+}
+
 function Assert-ItemAllowed {
-    # Refuse anything outside the three kinds of change the project allows.
+    # Refuse anything outside the three kinds of change the project allows. Every field must be a
+    # single string, so an array or an injected switch cannot slip through a pattern match.
     param([Parameter(Mandatory = $true)] $Item)
+    if ($Item.kind -isnot [string]) { throw "Unknown kind of change: $($Item.kind)" }
     switch ($Item.kind) {
         'registry' {
-            if ($Item.path -notmatch $AllowedRegistryPath) { throw "Registry path not allowed: $($Item.path)" }
-            if ($Item.name -notmatch $AllowedRegistryName) { throw "Registry value name not allowed: $($Item.name)" }
+            if (-not (Test-AllowedRegistryPath $Item.path)) { throw "Registry path not allowed: $($Item.path)" }
+            if ($Item.name -isnot [string] -or $Item.name -notmatch $AllowedRegistryName) {
+                throw "Registry value name not allowed: $($Item.name)"
+            }
         }
         'audit' {
-            if ($Item.guid -notmatch $AuditGuidPattern) { throw "Not an audit subcategory GUID: $($Item.guid)" }
+            if ($Item.guid -isnot [string] -or $Item.guid -notmatch $AuditGuidPattern) {
+                throw "Not an audit subcategory GUID: $($Item.guid)"
+            }
         }
         'account' {
-            if (-not $AccountLabels.Contains([string]$Item.option)) { throw "Unknown account option: $($Item.option)" }
+            if ($Item.option -isnot [string] -or -not $AccountLabels.Contains($Item.option)) {
+                throw "Unknown account option: $($Item.option)"
+            }
         }
         default { throw "Unknown kind of change: $($Item.kind)" }
+    }
+}
+
+function Assert-StateValid {
+    # A backup entry must hold only what Get-ItemState records: nothing that could become a switch.
+    param([Parameter(Mandatory = $true)] $State)
+    Assert-ItemAllowed $State
+    $label = Get-StateLabel $State
+    switch ($State.kind) {
+        'registry' {
+            $valid = $State.exists -is [bool]
+            if ($valid -and $State.exists) {
+                if ($State.type -eq 'DWord') { $valid = Test-WholeNumber $State.value -2147483648 4294967295 }
+                elseif ($State.type -in @('String', 'ExpandString')) { $valid = $State.value -is [string] }
+                else { $valid = $false }
+            }
+            if (-not $valid) { throw "Backup entry for $label is not valid." }
+        }
+        'audit' { if (-not (Test-WholeNumber $State.value 0 3)) { throw "Backup entry for $label is not valid." } }
+        'account' { if (-not (Test-WholeNumber $State.value 0 99999)) { throw "Backup entry for $label is not valid." } }
     }
 }
 
@@ -61,11 +104,19 @@ function Get-FixItems {
         if ($optional -and -not $IncludeOptional) { continue }
         foreach ($item in $fix.items) {
             Assert-ItemAllowed $item
-            if ($item.kind -eq 'registry' -and $item.type -notin @('DWord', 'String')) {
-                throw "Unsupported registry type: $($item.type)"
+            if ($item.kind -eq 'registry') {
+                $fits = switch ($item.type) {
+                    'DWord' { Test-WholeNumber $item.value 0 4294967295 }
+                    'String' { $item.value -is [string] }
+                    default { $false }
+                }
+                if (-not $fits) { throw "Unsupported registry type or value: $($item.type) $($item.value)" }
             }
             if ($item.kind -eq 'audit' -and -not $AuditBits.ContainsKey([string]$item.require)) {
                 throw "Unknown audit requirement: $($item.require)"
+            }
+            if ($item.kind -eq 'account' -and -not (Test-WholeNumber $item.value 0 999)) {
+                throw "Account value must be a whole number from 0 to 999: $($item.value)"
             }
             $copy = $item.PSObject.Copy()
             $copy | Add-Member -NotePropertyName fix -NotePropertyValue $fix.id
@@ -123,7 +174,8 @@ function Get-AuditSettings {
         ConvertFrom-AuditBackup -Lines (Get-Content -LiteralPath $file)
     }
     finally {
-        Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue
+        # -WhatIf on apply.ps1 must not keep this file, so this removal ignores it.
+        Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue -WhatIf:$false -Confirm:$false
     }
 }
 
@@ -297,8 +349,9 @@ function Set-ItemState {
             if ($LASTEXITCODE -ne 0) { throw "auditpol could not set $($State.subcategory) (exit code $LASTEXITCODE)." }
         }
         'account' {
-            $null = & net.exe accounts "/$($State.option):$($State.value)"
-            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set /$($State.option):$($State.value) (exit code $LASTEXITCODE)." }
+            $setting = '/{0}:{1}' -f $State.option, [int]$State.value
+            $null = & net.exe accounts $setting
+            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
         }
     }
 }
@@ -322,7 +375,7 @@ function Save-Backup {
     )
     $null = New-Item -ItemType Directory -Path $Directory -Force
     $now = (Get-Date).ToUniversalTime()
-    $path = Join-Path $Directory ($now.ToString('yyyyMMdd-HHmmss') + '.json')
+    $path = Join-Path $Directory ($now.ToString('yyyyMMdd-HHmmss-fff') + '.json')
     $backup = [ordered]@{
         format       = 1
         taken_at     = $now.ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -339,22 +392,29 @@ function Read-Backup {
     if (-not ($backup.PSObject.Properties.Name -contains 'format') -or $backup.format -ne 1) {
         throw "$Path is not a backup written by apply.ps1."
     }
-    foreach ($state in $backup.items) { Assert-ItemAllowed $state }
+    foreach ($state in $backup.items) { Assert-StateValid $state }
     foreach ($key in $backup.created_keys) {
-        if ($key -notmatch $AllowedRegistryPath) { throw "Registry path not allowed: $key" }
+        if (-not (Test-AllowedRegistryPath $key)) { throw "Registry path not allowed: $key" }
     }
     $backup
 }
 
 function Invoke-Undo {
-    # Put every setting back as the backup recorded it, last change first.
+    # Put every setting back as the backup recorded it, last change first. A setting that cannot be
+    # restored does not stop the others; every problem is reported together at the end.
     param([Parameter(Mandatory = $true)] $Backup)
     $states = @($Backup.items)
     [array]::Reverse($states)
-    foreach ($state in $states) { Set-ItemState $state }
-    Remove-EmptyKeys -Keys @($Backup.created_keys)
-    $mismatches = @(Find-Mismatches -Expected $states)
-    if ($mismatches.Count) { throw "These settings were not restored: $($mismatches -join ', ')" }
+    $problems = @()
+    foreach ($state in $states) {
+        try { Set-ItemState $state }
+        catch { $problems += "$(Get-StateLabel $state) ($($_.Exception.Message))" }
+    }
+    try { Remove-EmptyKeys -Keys @($Backup.created_keys) }
+    catch { $problems += "removing the keys apply.ps1 created ($($_.Exception.Message))" }
+    try { $problems += @(Find-Mismatches -Expected $states) }
+    catch { $problems += "checking the restored values ($($_.Exception.Message))" }
+    if ($problems.Count) { throw "These settings were not restored: $($problems -join '; ')" }
 }
 
 function Invoke-Apply {
@@ -371,9 +431,13 @@ function Invoke-Apply {
         if ($mismatches.Count) { throw "These settings did not take effect: $($mismatches -join ', ')" }
     }
     catch {
-        Write-Warning "A change failed, so every change is being undone from $backupPath."
-        Invoke-Undo -Backup (Get-Content -LiteralPath $backupPath -Raw -Encoding UTF8 | ConvertFrom-Json)
-        throw
+        $failure = $_.Exception.Message
+        Write-Warning "A change failed ($failure), so every change is being undone from $backupPath."
+        try { Invoke-Undo -Backup (Get-Content -LiteralPath $backupPath -Raw -Encoding UTF8 | ConvertFrom-Json) }
+        catch {
+            throw "A change failed ($failure), and undoing it was not complete: $($_.Exception.Message) Run undo.ps1 with $backupPath."
+        }
+        throw "A change failed ($failure). Every change was undone from $backupPath."
     }
     $backupPath
 }
