@@ -164,7 +164,7 @@ a { color: var(--link); }
 <thead><tr><th>ID</th><th>Control</th><th>Status</th><th>Evidence</th></tr></thead>
 <tbody>
 {% for r in results %}
-<tr data-status="{{ r.status or 'No rating' }}"><td>{{ r.control.id }}</td><td><b>{{ r.control.subdomain_title }}</b><br>{{ r.control.text }}</td><td>{{ badge(r.status) }}</td><td>{{ r.summary }}</td></tr>
+<tr data-status="{{ r.status or 'No rating' }}"><td class="nowrap">{{ r.control.id }}</td><td><b>{{ r.control.subdomain_title }}</b><br>{{ r.control.text }}</td><td>{{ badge(r.status) }}</td><td>{{ r.summary }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 
@@ -218,7 +218,7 @@ a { color: var(--link); }
 <thead><tr><th>Fix</th><th>Change</th><th>ECC controls</th><th>Checks passing</th></tr></thead>
 <tbody>
 {% for row in fixes %}
-<tr><td>{{ row.fix.id }}</td><td><b>{{ row.fix.title }}</b>{% if row.fix.optional %} (optional){% endif %}<br>{{ row.fix.why }}</td><td>{{ row.controls|join(", ") }}</td><td class="nowrap">{% if row.applied is false %}Not applied{% else %}{% if row.before is not none %}{{ row.before }} &rarr; {% endif %}{{ row.after }} of {{ row.fix.checks|length }}{% endif %}</td></tr>
+<tr><td class="nowrap">{{ row.fix.id }}</td><td><b>{{ row.fix.title }}</b>{% if row.fix.optional %} (optional){% endif %}<br>{{ row.fix.why }}</td><td>{{ row.controls|join(", ") }}</td><td class="nowrap">{% if row.applied is false %}Not applied{% else %}{% if row.before is not none %}{{ row.before }} &rarr; {% endif %}{{ row.after }} of {{ row.fix.checks|length }}{% endif %}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% endif %}
@@ -249,7 +249,7 @@ a { color: var(--link); }
 <thead><tr><th>ID</th><th>Subdomain</th><th>Why it does not apply</th></tr></thead>
 <tbody>
 {% for r in not_applicable %}
-<tr><td>{{ r.control.id }}</td><td>{{ r.control.subdomain_title }}</td><td>{{ r.na_reason }}</td></tr>
+<tr><td class="nowrap">{{ r.control.id }}</td><td>{{ r.control.subdomain_title }}</td><td>{{ r.na_reason }}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% endif %}

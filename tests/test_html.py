@@ -15,7 +15,7 @@ def test_the_report_shows_the_score_and_every_control(dataset, baseline):
     html = render_html(dataset, assess(dataset, baseline))
     assert "50.0%" in html
     for control in dataset.catalog:
-        assert f"<td>{control.id}</td>" in html
+        assert f'<td class="nowrap">{control.id}</td>' in html
     assert "WS-01" in html
     assert "What changed" not in html
 
@@ -116,7 +116,7 @@ def test_unrated_controls_are_counted_and_filterable(dataset, baseline):
     html = render_html(changed, assess(changed, baseline))
     assert "<b>1</b>No rating</div>" in html
     assert "<option>No rating</option>" in html
-    assert '<tr data-status="No rating"><td>1-3-1</td>' in html
+    assert '<tr data-status="No rating"><td class="nowrap">1-3-1</td>' in html
 
 
 def test_the_method_matches_the_scoring(dataset, baseline):
