@@ -14,7 +14,7 @@
 - Spec section 8, and spec section 15 (added with this plan): `docs/superpowers/specs/2026-10-08-ecc-gap-assessment-design.md`.
 
 Every code block and data file below was applied to a copy of the repository and verified before this plan was written:
-- Test counts after each task: Task 1 259, Task 2 283, Task 3 288, Task 4 290.
+- Test counts after each task: Task 1 259, Task 2 284, Task 3 289, Task 4 291.
 - ruff is clean and `check` passes after every task.
 - A read-only dry run of the real fix list on WS-01 showed all 57 settings with their current and new values.
 - A simulated after snapshot (every fix applied, high-severity vulnerabilities patched) gives 27.0% and 176 of 473 checks passing.
@@ -736,6 +736,11 @@ Create `remediation/fixes.json`:
       "items": [
         {
           "kind": "account",
+          "option": "lockoutthreshold",
+          "value": 5
+        },
+        {
+          "kind": "account",
           "option": "lockoutduration",
           "value": 15
         },
@@ -743,11 +748,6 @@ Create `remediation/fixes.json`:
           "kind": "account",
           "option": "lockoutwindow",
           "value": 15
-        },
-        {
-          "kind": "account",
-          "option": "lockoutthreshold",
-          "value": 5
         }
       ]
     },
@@ -1159,7 +1159,7 @@ git -c user.name="Ahmed Helal" -c user.email="abuh3lal@gmail.com" commit -m "Lis
   - `Get-AuditSettings` and `ConvertFrom-AuditBackup`;
   - `Get-ItemState`, `Get-TargetState` and `Get-Plan -Items`.
 - **Showing a plan or backup:** `Format-Plan`, `Format-Backup`, `Get-ChangeCount`, `Get-StateLabel`, `Format-StateValue`, `Test-StateMatch`.
-- **Changing and restoring:** `Set-ItemState`, `Invoke-Apply -Plan -BackupDirectory` (returns the backup path), `Read-Backup`, `Invoke-Undo -Backup`.
+- **Changing and restoring:** `Set-ItemState`, `Set-AccountOption`, `Invoke-Apply -Plan -BackupDirectory` (returns the backup path), `Read-Backup` (validates every entry with `Assert-StateValid`), `Invoke-Undo -Backup` (attempts every restore and reports all failures together).
 - **Checking:** `Find-Mismatches`, `Assert-Administrator`.
 
 `apply.ps1 [-IncludeLockout] [-WhatIf]` and `undo.ps1 -Backup <file> [-WhatIf]` require an administrator PowerShell and ask once for confirmation.
@@ -1339,6 +1339,46 @@ $item = [pscustomobject]@{{
     subcategory = '{subcategory}'; require = '{require}'
 }}
 """
+
+
+def test_lockout_changes_keep_the_window_within_the_duration(tmp_path):
+    # A fake 'net accounts' that refuses a window longer than the duration, as Windows does,
+    # starting from GitHub's runner defaults (no threshold, 30-minute duration and window).
+    found = result(
+        tmp_path,
+        """
+$module = Get-Module Remediation
+& $module {
+    $script:Fake = @{
+        uniquepw = 0; minpwage = 0; minpwlen = 0
+        lockoutthreshold = 0; lockoutduration = 30; lockoutwindow = 30
+    }
+    function script:Get-AccountSettings { $script:Fake.Clone() }
+    function script:Set-AccountOption($Option, $Value) {
+        $next = $script:Fake.Clone()
+        $next[$Option] = $Value
+        if ($next.lockoutduration -gt 0 -and $next.lockoutwindow -gt $next.lockoutduration) {
+            throw 'window longer than duration'
+        }
+        $script:Fake = $next
+    }
+}
+function Acct($option, $value) {
+    [pscustomobject]@{ kind = 'account'; fix = 'F08'; option = $option; value = $value }
+}
+function Now {
+    $f = & $module { $Fake }
+    '{0}/{1}/{2}' -f $f.lockoutthreshold, $f.lockoutduration, $f.lockoutwindow
+}
+$apply = @((Acct 'lockoutthreshold' 5), (Acct 'lockoutduration' 15), (Acct 'lockoutwindow' 15))
+foreach ($step in $apply) { Set-ItemState $step }
+$applied = Now
+$undo = @((Acct 'lockoutwindow' 30), (Acct 'lockoutduration' 30), (Acct 'lockoutthreshold' 0))
+foreach ($step in $undo) { Set-ItemState $step }
+@{ applied = $applied; restored = Now } | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"applied": "5/15/15", "restored": "0/30/30"}
 
 
 def test_audit_settings_are_read_and_only_ever_added(tmp_path):
@@ -1957,11 +1997,28 @@ function Set-ItemState {
             if ($LASTEXITCODE -ne 0) { throw "auditpol could not set $($State.subcategory) (exit code $LASTEXITCODE)." }
         }
         'account' {
-            $setting = '/{0}:{1}' -f $State.option, [int]$State.value
-            $null = & net.exe accounts $setting
-            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
+            $value = [int]$State.value
+            # Windows refuses a lockout window longer than the lockout duration. When this change
+            # would break that, the other setting moves first; its own item sets it again later.
+            if ($State.option -in @('lockoutduration', 'lockoutwindow')) {
+                $now = Get-AccountSettings
+                if ($State.option -eq 'lockoutduration' -and $value -gt 0 -and $now['lockoutwindow'] -gt $value) {
+                    Set-AccountOption -Option 'lockoutwindow' -Value $value
+                }
+                if ($State.option -eq 'lockoutwindow' -and $now['lockoutduration'] -gt 0 -and $value -gt $now['lockoutduration']) {
+                    Set-AccountOption -Option 'lockoutduration' -Value $value
+                }
+            }
+            Set-AccountOption -Option $State.option -Value $value
         }
     }
+}
+
+function Set-AccountOption {
+    param([Parameter(Mandatory = $true)] [string] $Option, [Parameter(Mandatory = $true)] [int] $Value)
+    $setting = '/{0}:{1}' -f $Option, $Value
+    $null = & net.exe accounts $setting
+    if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
 }
 
 function Remove-EmptyKeys {
@@ -2142,7 +2199,7 @@ Write-Host "Restored $count settings from $Backup. Every value was checked after
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `283 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `284 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - This command, which must print `0 parse errors` for each file:
 
@@ -2465,7 +2522,7 @@ with:
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `288 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `289 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc build --no-pdf`: `26.0% compliant (baseline)`. The single-snapshot report shows "12 reversible fixes are planned".
 
@@ -2769,7 +2826,7 @@ business changes significantly. Changes are recorded and approved by the General
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `290 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
+- `.venv/Scripts/python -m pytest -q -W error`: `291 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`
 
@@ -2804,6 +2861,9 @@ name: CI
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -2840,7 +2900,11 @@ jobs:
         run: |
           Import-Module .\remediation\Remediation.psm1
           $items = @(Get-FixItems -Path .\remediation\fixes.json -IncludeOptional)
-          $keys = @($items | Where-Object { $_.kind -eq 'registry' } | ForEach-Object { $_.path } | Sort-Object -Unique)
+          # Every key on the way to each setting, so keys that apply.ps1 creates are checked too.
+          $keys = @($items | Where-Object { $_.kind -eq 'registry' } | ForEach-Object {
+              $path = $_.path
+              while ($path -and $path -ne 'HKLM:\') { $path; $path = Split-Path -Path $path -Parent }
+          } | Sort-Object -Unique)
           $before = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
           $keysBefore = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
 
@@ -2852,8 +2916,8 @@ jobs:
           .\remediation\undo.ps1 -Backup $backup.FullName -Confirm:$false
           $after = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
           $keysAfter = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
-          if ($before -ne $after) { throw 'undo.ps1 did not restore every setting' }
-          if ($keysBefore -ne $keysAfter) { throw 'undo.ps1 left registry keys behind' }
+          if ($before -cne $after) { throw 'undo.ps1 did not restore every setting' }
+          if ($keysBefore -cne $keysAfter) { throw 'undo.ps1 left registry keys behind' }
           Write-Host "apply.ps1 changed and undo.ps1 restored all $($items.Count) settings."
 ```
 
@@ -2890,13 +2954,13 @@ jobs:
       - run: pip install -r requirements.txt
 
       # Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs; allow them on this VM
-      # instead of turning the sandbox off.
+      # instead of turning the sandbox off. Images without the setting need nothing.
       - name: Let headless Chrome use its sandbox
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
       - name: Build the workbook, web page and PDF
         run: |
-          if ls snapshots/*-after.json > /dev/null 2>&1; then
+          if ls snapshots/????-??-after.json > /dev/null 2>&1; then
             python -m ecc build --before baseline --after after
           else
             python -m ecc build
