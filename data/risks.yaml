@@ -271,3 +271,14 @@ risks:
     treatment: mitigate
     owner: IT Manager
     due: 2027-01-31
+  - id: R-27
+    controls: [2-2-3]
+    statement: >-
+      Accounts lock only after 10 wrong passwords, for 10 minutes (the Windows default), instead
+      of after 5 for 15 minutes, because WS-01 is used to test Wazuh's failed-logon detections;
+      password guessing against local accounts is slowed less than CIS recommends.
+    likelihood: 2
+    impact: 3
+    treatment: accept
+    owner: Cybersecurity Lead
+    due: 2027-04-10

@@ -1,21 +1,30 @@
-# The report's words. Figures describe the baseline snapshot of 8 October 2026; update them when
-# a new snapshot is reported.
+# The report's words. Figures describe the baseline snapshot of 8 October 2026 and the after
+# snapshot of 10 October 2026, taken once the fixes in remediation/fixes.json were applied.
+# tests/test_real_data.py checks the quoted figures against the committed snapshots.
 company: Rimal Byte (fictional)
+# F08 (account lockout) was left out on purpose; the risk is accepted as R-27.
+optional_fixes_applied: []
 executive_summary:
   - >-
     Rimal Byte (fictional) is a 30-person IT services company in Jeddah that is aligning with the
     National Cybersecurity Authority's Essential Cybersecurity Controls (ECC-2:2024) to compete for
-    government contracts. This baseline assessment rates all 108 ECC controls. 102 apply, and the
-    company meets 26.0% of them, counting Partially implemented controls as half.
+    government contracts. This assessment rates all 108 ECC controls. 102 apply, and at the
+    baseline of 8 October 2026 the company met 26.0% of them, counting Partially implemented
+    controls as half.
   - >-
     Governance has a starting point: six policies, a Cybersecurity Lead role and a supervisory
     committee were approved in October 2026. Most of what those policies require is still being
     rolled out, and there is no cybersecurity strategy, awareness program, incident response plan
     or business continuity plan yet.
   - >-
-    Workstation hardening is weak: only 122 of the 473 applicable CIS benchmark checks pass on the
-    representative workstation (WS-01), and every technically measured control is a gap. The 26
-    risks in the register are led by insecure software delivery, phishing without awareness
+    Eleven reversible fixes then hardened the representative workstation (WS-01): auditing, event
+    log sizes, firewall logging, diagnostic data, password rules, User Account Control, AutoPlay,
+    name resolution and Remote Assistance. Passing CIS benchmark checks rose from 122 to 176 of
+    473, every targeted check now passes, and no other check changed. Compliance moved only from
+    26.0% to 26.5%: ECC rates a control Implemented only when every one of its checks passes, and
+    disk encryption (47 checks) cannot be enabled on Windows 11 Home.
+  - >-
+    The 27 risks in the register are led by insecure software delivery, phishing without awareness
     training and weak workstation hardening. The roadmap starts with email authentication and the
     five open high-severity vulnerabilities.
 key_findings:
@@ -23,13 +32,24 @@ key_findings:
     Six policies are approved, but there is no cybersecurity strategy and the only cybersecurity
     role is part-time (1-1, 1-2).
   - >-
-    Only 122 of 473 applicable CIS checks pass on WS-01. Encryption scores 0 of 47 because Windows
-    11 Home has no full BitLocker (2-3, 2-8).
-  - Security logs go back about 10 days; ECC asks for 12 months (2.12.3.5).
-  - No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3).
+    After the fixes, 176 of 473 applicable CIS checks pass on WS-01, up from 122. Every
+    technically measured control is still a gap; encryption scores 0 of 47 because Windows 11 Home
+    has no full BitLocker (2-3, 2-8).
+  - >-
+    Windows now records much more: 51 of 53 logging checks pass, up from 16. Security logs still go
+    back only about two weeks, and ECC asks for 12 months (2-12-3, 2.12.3.5).
+  - >-
+    No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3). All five are in
+    Steam's client and match a version number its installer never updates, so they are probably
+    false positives; they stay counted until the running version is confirmed.
   - >-
     There is no awareness program, incident response plan, penetration testing or business
     continuity plan (1-10, 2-11, 2-13, 3-1).
+  - >-
+    The account lockout fix (F08) was left out on purpose: WS-01 is used to test Wazuh's
+    failed-logon detections, and a 5-attempt lockout would stop those tests. The Cybersecurity
+    Lead accepted the risk (R-27), with Wazuh alerts on repeated failed logons as the compensating
+    control.
   - >-
     Mapped onto SAMA's Cyber Security Framework, none of the 28 applicable subdomains reaches
     maturity Level 3, the minimum SAMA expects of the organisations it regulates (indicative
@@ -56,4 +76,10 @@ limitations:
     assessed separately. They show how much of the mapped ECC controls is in place, not SAMA's
     own level criteria, so they are a rough guide: a derived Level 3 would be an upper bound, and
     a Level 0 can miss informal practice.
-  - Results describe one point in time, the baseline snapshot of 8 October 2026.
+  - >-
+    The CIS checks read each setting from the registry. Firewall logging and the larger event
+    logs were also confirmed in effect after a restart; the other settings were not observed in
+    use.
+  - >-
+    Results describe two points in time: the baseline snapshot of 8 October 2026 and the after
+    snapshot of 10 October 2026.

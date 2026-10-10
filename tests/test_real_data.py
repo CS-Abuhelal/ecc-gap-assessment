@@ -1,8 +1,9 @@
 from collections import Counter
 from pathlib import Path
 
-from ecc.assess import assess, compliance, domain_scores
+from ecc.assess import assess, check_progress, compliance, domain_scores
 from ecc.load import load_dataset, load_snapshots
+from ecc.models import Status
 from ecc.remediation import fix_results
 from ecc.sama import level_counts, sama_view
 from ecc.validate import validate
@@ -63,3 +64,37 @@ def test_the_planned_fixes():
     assert {control for row in rows for control in row.controls} == {
         "2-2-3", "2-3-3", "2-5-3", "2-7-2", "2-12-3"
     }
+
+
+def test_the_narrative_quotes_the_computed_figures():
+    dataset, snapshots, before = baseline_assessment()
+    later = next(snapshot for snapshot in snapshots if snapshot.label == "after")
+    after = assess(dataset, later)
+    report = dataset.report
+    paragraphs = (*report.executive_summary, *report.key_findings, *report.limitations)
+    text = " ".join(" ".join(paragraph.split()) for paragraph in paragraphs)
+
+    def passed(snapshot):
+        return sum(1 for check in snapshot.checks if check.result == "passed")
+
+    usable = sum(1 for check in later.checks if check.result in ("passed", "failed"))
+    progress = {p.control.id: p for p in check_progress(before, after)}
+    logging, encryption = progress["2-12-3"], progress["2-8-3"]
+    applicable = sum(1 for r in after.results if r.status is not Status.NOT_APPLICABLE)
+    figures = [
+        f"{applicable} apply",
+        f"met {compliance(before.results)}% of them",
+        f"from {passed(before.snapshot)} to {passed(later)} of {usable}",
+        f"from {compliance(before.results)}% to {compliance(after.results)}%",
+        f"{passed(later)} of {usable} applicable CIS checks pass on WS-01, up from "
+        f"{passed(before.snapshot)}",
+        f"encryption scores {encryption.after[0]} of {encryption.after[1]}",
+        f"{logging.after[0]} of {logging.after[1]} logging checks pass, up from "
+        f"{logging.before[0]}",
+        f"{later.vulnerabilities.high} high-severity ones are",
+        f"The {len(dataset.risks.risks)} risks",
+    ]
+    for figure in figures:
+        assert figure in text, figure
+    assert later.vulnerabilities.critical == 0
+    assert "No critical vulnerabilities are open" in text
