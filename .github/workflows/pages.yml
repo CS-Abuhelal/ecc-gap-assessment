@@ -28,13 +28,13 @@ jobs:
       - run: pip install -r requirements.txt
 
       # Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs; allow them on this VM
-      # instead of turning the sandbox off.
+      # instead of turning the sandbox off. Images without the setting need nothing.
       - name: Let headless Chrome use its sandbox
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
       - name: Build the workbook, web page and PDF
         run: |
-          if ls snapshots/*-after.json > /dev/null 2>&1; then
+          if ls snapshots/????-??-after.json > /dev/null 2>&1; then
             python -m ecc build --before baseline --after after
           else
             python -m ecc build

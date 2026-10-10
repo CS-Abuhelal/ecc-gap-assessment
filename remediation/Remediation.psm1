@@ -349,11 +349,28 @@ function Set-ItemState {
             if ($LASTEXITCODE -ne 0) { throw "auditpol could not set $($State.subcategory) (exit code $LASTEXITCODE)." }
         }
         'account' {
-            $setting = '/{0}:{1}' -f $State.option, [int]$State.value
-            $null = & net.exe accounts $setting
-            if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
+            $value = [int]$State.value
+            # Windows refuses a lockout window longer than the lockout duration. When this change
+            # would break that, the other setting moves first; its own item sets it again later.
+            if ($State.option -in @('lockoutduration', 'lockoutwindow')) {
+                $now = Get-AccountSettings
+                if ($State.option -eq 'lockoutduration' -and $value -gt 0 -and $now['lockoutwindow'] -gt $value) {
+                    Set-AccountOption -Option 'lockoutwindow' -Value $value
+                }
+                if ($State.option -eq 'lockoutwindow' -and $now['lockoutduration'] -gt 0 -and $value -gt $now['lockoutduration']) {
+                    Set-AccountOption -Option 'lockoutduration' -Value $value
+                }
+            }
+            Set-AccountOption -Option $State.option -Value $value
         }
     }
+}
+
+function Set-AccountOption {
+    param([Parameter(Mandatory = $true)] [string] $Option, [Parameter(Mandatory = $true)] [int] $Value)
+    $setting = '/{0}:{1}' -f $Option, $Value
+    $null = & net.exe accounts $setting
+    if ($LASTEXITCODE -ne 0) { throw "net accounts could not set $setting (exit code $LASTEXITCODE)." }
 }
 
 function Remove-EmptyKeys {

@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Lint, test and build (Ubuntu)
@@ -39,7 +42,11 @@ jobs:
         run: |
           Import-Module .\remediation\Remediation.psm1
           $items = @(Get-FixItems -Path .\remediation\fixes.json -IncludeOptional)
-          $keys = @($items | Where-Object { $_.kind -eq 'registry' } | ForEach-Object { $_.path } | Sort-Object -Unique)
+          # Every key on the way to each setting, so keys that apply.ps1 creates are checked too.
+          $keys = @($items | Where-Object { $_.kind -eq 'registry' } | ForEach-Object {
+              $path = $_.path
+              while ($path -and $path -ne 'HKLM:\') { $path; $path = Split-Path -Path $path -Parent }
+          } | Sort-Object -Unique)
           $before = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
           $keysBefore = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
 
@@ -51,6 +58,6 @@ jobs:
           .\remediation\undo.ps1 -Backup $backup.FullName -Confirm:$false
           $after = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
           $keysAfter = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
-          if ($before -ne $after) { throw 'undo.ps1 did not restore every setting' }
-          if ($keysBefore -ne $keysAfter) { throw 'undo.ps1 left registry keys behind' }
+          if ($before -cne $after) { throw 'undo.ps1 did not restore every setting' }
+          if ($keysBefore -cne $keysAfter) { throw 'undo.ps1 left registry keys behind' }
           Write-Host "apply.ps1 changed and undo.ps1 restored all $($items.Count) settings."

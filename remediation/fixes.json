@@ -429,6 +429,11 @@
       "items": [
         {
           "kind": "account",
+          "option": "lockoutthreshold",
+          "value": 5
+        },
+        {
+          "kind": "account",
           "option": "lockoutduration",
           "value": 15
         },
@@ -436,11 +441,6 @@
           "kind": "account",
           "option": "lockoutwindow",
           "value": 15
-        },
-        {
-          "kind": "account",
-          "option": "lockoutthreshold",
-          "value": 5
         }
       ]
     },

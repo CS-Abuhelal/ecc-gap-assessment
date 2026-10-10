@@ -170,6 +170,46 @@ $item = [pscustomobject]@{{
 """
 
 
+def test_lockout_changes_keep_the_window_within_the_duration(tmp_path):
+    # A fake 'net accounts' that refuses a window longer than the duration, as Windows does,
+    # starting from GitHub's runner defaults (no threshold, 30-minute duration and window).
+    found = result(
+        tmp_path,
+        """
+$module = Get-Module Remediation
+& $module {
+    $script:Fake = @{
+        uniquepw = 0; minpwage = 0; minpwlen = 0
+        lockoutthreshold = 0; lockoutduration = 30; lockoutwindow = 30
+    }
+    function script:Get-AccountSettings { $script:Fake.Clone() }
+    function script:Set-AccountOption($Option, $Value) {
+        $next = $script:Fake.Clone()
+        $next[$Option] = $Value
+        if ($next.lockoutduration -gt 0 -and $next.lockoutwindow -gt $next.lockoutduration) {
+            throw 'window longer than duration'
+        }
+        $script:Fake = $next
+    }
+}
+function Acct($option, $value) {
+    [pscustomobject]@{ kind = 'account'; fix = 'F08'; option = $option; value = $value }
+}
+function Now {
+    $f = & $module { $Fake }
+    '{0}/{1}/{2}' -f $f.lockoutthreshold, $f.lockoutduration, $f.lockoutwindow
+}
+$apply = @((Acct 'lockoutthreshold' 5), (Acct 'lockoutduration' 15), (Acct 'lockoutwindow' 15))
+foreach ($step in $apply) { Set-ItemState $step }
+$applied = Now
+$undo = @((Acct 'lockoutwindow' 30), (Acct 'lockoutduration' 30), (Acct 'lockoutthreshold' 0))
+foreach ($step in $undo) { Set-ItemState $step }
+@{ applied = $applied; restored = Now } | ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"applied": "5/15/15", "restored": "0/30/30"}
+
+
 def test_audit_settings_are_read_and_only_ever_added(tmp_path):
     (tmp_path / "audit.csv").write_text(AUDIT_BACKUP, encoding="utf-8")
     setup = audit_item("Credential Validation", "failure").replace("{dir}", str(tmp_path))
