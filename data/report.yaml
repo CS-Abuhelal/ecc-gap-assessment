@@ -45,9 +45,9 @@ key_findings:
     No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3). Wazuh's dashboard
     shows all five in Steam's client, version 2.10.91.91, a number its installer does not update,
     so they are probably false positives. Under the vulnerability management policy the IT Manager
-    must confirm the running version, or update or remove Steam, within 30 days of the first
-    report. A game client on a company laptop also shows why an acceptable use policy is needed
-    (2-1-3).
+    must update or remove Steam within 30 days of the first report or, if the running version is
+    confirmed current, request an exception. A game client on a company laptop also shows why an
+    acceptable use policy is needed (2-1-3).
   - >-
     There is no awareness program, incident response plan, penetration testing or business
     continuity plan (1-10, 2-11, 2-13, 3-1).
