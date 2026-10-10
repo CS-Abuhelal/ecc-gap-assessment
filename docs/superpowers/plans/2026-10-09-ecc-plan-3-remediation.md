@@ -14,10 +14,12 @@
 - Spec section 8, and spec section 15 (added with this plan): `docs/superpowers/specs/2026-10-08-ecc-gap-assessment-design.md`.
 
 Every code block and data file below was applied to a copy of the repository and verified before this plan was written:
-- Test counts after each task: Task 1 259, Task 2 284, Task 3 289, Task 4 291.
+- Test counts after each task: Task 1 260, Task 2 286, Task 3 291, Task 4 293.
 - ruff is clean and `check` passes after every task.
 - A read-only dry run of the real fix list on WS-01 showed all 57 settings with their current and new values.
-- A simulated after snapshot (every fix applied, high-severity vulnerabilities patched) gives 27.0% and 176 of 473 checks passing.
+- A simulated after snapshot gives:
+  - 176 of 473 checks passing without the optional F08, or 179 with it;
+  - 26.5% compliance, or 27.0% if the five high-severity vulnerabilities are also patched.
 
 ## Global Constraints
 
@@ -248,6 +250,7 @@ def item_with(**changes):
         {"type": "QWord"},
         {"value": "1"},
         {"value": -1},
+        {"value": 2147483648},
         {"type": "String", "value": 1},
     ],
 )
@@ -458,7 +461,7 @@ Create `remediation/fixes.json`:
       "id": "F03",
       "title": "Record the command line of new processes",
       "why": "Process-start events (4688) then show how a program was started, not only its name.",
-      "effect": "Command lines appear in the Security log and in Wazuh on this PC.",
+      "effect": "Command lines appear in the Security log and in Wazuh on this PC, including anything typed as an argument, so passwords must never be passed on a command line.",
       "checks": [
         26222
       ],
@@ -815,7 +818,7 @@ Create `remediation/fixes.json`:
       "id": "F11",
       "title": "Turn off multicast name resolution and allow DNS over HTTPS",
       "why": "Without LLMNR, a device on the same network cannot answer for a mistyped name and capture a sign-in, the trick tools like Responder use.",
-      "effect": "Names are resolved by DNS only; DNS over HTTPS is allowed, not forced.",
+      "effect": "Names are no longer resolved by LLMNR (DNS, NetBIOS and mDNS still work); DNS over HTTPS is allowed, not forced.",
       "checks": [
         26191,
         26193
@@ -916,9 +919,10 @@ class RegistryItem(Strict):
     @model_validator(mode="after")
     def _value_fits_type(self) -> RegistryItem:
         if self.type == "DWord" and not (
-            isinstance(self.value, int) and 0 <= self.value <= 0xFFFFFFFF
+            isinstance(self.value, int) and 0 <= self.value <= 0x7FFFFFFF
         ):
-            raise ValueError("a DWord value must be a whole number from 0 to 4294967295")
+            # Windows reads larger DWords back as negative numbers, so they could not be verified.
+            raise ValueError("a DWord value must be a whole number from 0 to 2147483647")
         if self.type == "String" and not isinstance(self.value, str):
             raise ValueError("a String value must be text")
         return self
@@ -1137,7 +1141,7 @@ def fix_results(
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `259 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `260 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`: `OK: 108 controls, 482 checks, 1 snapshot(s).`
 
@@ -1246,9 +1250,10 @@ def powershell(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
 
 
 def result(tmp_path: Path, body: str) -> Any:
+    """Run a script whose last output line is JSON (lines before it are progress messages)."""
     done = powershell(tmp_path, body)
     assert done.returncode == 0, done.stderr
-    return json.loads(done.stdout)
+    return json.loads(done.stdout.strip().splitlines()[-1])
 
 
 @pytest.fixture
@@ -1597,6 +1602,35 @@ def test_a_crafted_backup_is_refused(tmp_path, items, created, message):
     assert message in done.stderr
 
 
+def test_a_backup_of_this_pcs_settings_can_be_read_back(tmp_path):
+    # Reads the real registry and 'net accounts' (nothing is changed); only the audit settings,
+    # which need an administrator to read, are faked as 'No auditing'.
+    fixes = ROOT / "remediation" / "fixes.json"
+    found = result(
+        tmp_path,
+        f"""
+$items = @(Get-FixItems -Path '{fixes}' -IncludeOptional)
+$csv = @('Machine Name,Policy Target,Subcategory,Subcategory GUID,' +
+    'Inclusion Setting,Exclusion Setting,Setting Value')
+foreach ($item in ($items | Where-Object {{ $_.kind -eq 'audit' }})) {{
+    $csv += "DESKTOP-TEST1,System,$($item.subcategory),$($item.guid),No Auditing,,0"
+}}
+& (Get-Module Remediation) {{
+    param($lines)
+    $script:FakeAudit = ConvertFrom-AuditBackup -Lines $lines
+    function script:Get-AuditSettings {{ $script:FakeAudit }}
+}} $csv
+$plan = @(Get-Plan -Items $items)
+$states = @($plan | ForEach-Object {{ $_.Current }})
+$path = Save-Backup -States $states -Directory (Join-Path '{tmp_path}' 'backups')
+$backup = Read-Backup -Path $path
+@{{ items = @($backup.items).Count; rows = @(Format-Backup -Backup $backup).Count }} |
+    ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"items": 57, "rows": 57}
+
+
 def test_a_failed_change_undoes_the_others(tmp_path, key):
     found = result(
         tmp_path,
@@ -1754,7 +1788,8 @@ function Get-FixItems {
             Assert-ItemAllowed $item
             if ($item.kind -eq 'registry') {
                 $fits = switch ($item.type) {
-                    'DWord' { Test-WholeNumber $item.value 0 4294967295 }
+                    # Larger DWords read back as negative numbers and could not be verified.
+                    'DWord' { Test-WholeNumber $item.value 0 2147483647 }
                     'String' { $item.value -is [string] }
                     default { $false }
                 }
@@ -1768,6 +1803,7 @@ function Get-FixItems {
             }
             $copy = $item.PSObject.Copy()
             $copy | Add-Member -NotePropertyName fix -NotePropertyValue $fix.id
+            $copy | Add-Member -NotePropertyName title -NotePropertyValue $fix.title
             $copy
         }
     }
@@ -2000,6 +2036,7 @@ function Set-ItemState {
             $value = [int]$State.value
             # Windows refuses a lockout window longer than the lockout duration. When this change
             # would break that, the other setting moves first; its own item sets it again later.
+            # This relies on F08 listing both settings, so both are backed up and restored.
             if ($State.option -in @('lockoutduration', 'lockoutwindow')) {
                 $now = Get-AccountSettings
                 if ($State.option -eq 'lockoutduration' -and $value -gt 0 -and $now['lockoutwindow'] -gt $value) {
@@ -2090,6 +2127,8 @@ function Invoke-Apply {
             ForEach-Object { Get-MissingKeys $_.Item.path } | Sort-Object -Unique
     )
     $backupPath = Save-Backup -States @($Plan | ForEach-Object { $_.Current }) -CreatedKeys $created -Directory $BackupDirectory
+    # Shown before any change, so the path is on screen even if the window is closed mid-way.
+    Write-Host "Saved the current values to $backupPath"
     try {
         foreach ($step in $Plan) { Set-ItemState $step.Target }
         $mismatches = @(Find-Mismatches -Expected @($Plan | ForEach-Object { $_.Target }))
@@ -2126,7 +2165,11 @@ Run it from an administrator Windows PowerShell in the repository folder:
 -WhatIf shows every setting with its current and new value and changes nothing. Without it,
 the script asks once for confirmation, writes remediation\backups\<time>.json, applies the
 changes and checks each one. If any change fails, it undoes all of them from the backup.
-undo.ps1 restores a backup later. No change needs a restart.
+undo.ps1 restores a backup later. Copy the backup file somewhere outside the repository too.
+
+The CIS checks see every change at once, without a restart. Windows itself applies firewall
+logging, event log sizes and name resolution at its next policy refresh (gpupdate /force or a
+restart), and the built-in Administrator setting at that account's next sign-in.
 
 .PARAMETER IncludeLockout
 Also apply F08 (lock an account for 15 minutes after 5 wrong passwords).
@@ -2142,6 +2185,8 @@ Assert-Administrator
 $items = @(Get-FixItems -Path (Join-Path $PSScriptRoot 'fixes.json') -IncludeOptional:$IncludeLockout)
 $plan = @(Get-Plan -Items $items)
 
+Write-Host 'Fixes:'
+$items | Group-Object fix | ForEach-Object { Write-Host ('  {0}  {1}' -f $_.Name, $_.Group[0].title) }
 Format-Plan -Plan $plan | Format-Table -AutoSize -Wrap | Out-String -Width 200 | Write-Host
 $changing = Get-ChangeCount -Plan $plan
 Write-Host "$changing of $($plan.Count) settings will change."
@@ -2157,8 +2202,9 @@ if (-not $PSCmdlet.ShouldProcess('this PC', "Change $changing Windows settings")
 
 $backup = Invoke-Apply -Plan $plan -BackupDirectory $backups
 Write-Host "Done. Every setting was checked after the change."
-Write-Host "Backup of the old values: $backup"
+Write-Host "Backup of the old values: $backup (copy it outside the repository as well)"
 Write-Host "To undo: powershell -ExecutionPolicy Bypass -File .\remediation\undo.ps1 -Backup `"$backup`""
+Write-Host 'Next: run gpupdate /force so Windows applies the policy settings now.'
 ```
 
 Create `remediation/undo.ps1`:
@@ -2199,7 +2245,7 @@ Write-Host "Restored $count settings from $Backup. Every value was checked after
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `284 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `286 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - This command, which must print `0 parse errors` for each file:
 
@@ -2522,7 +2568,7 @@ with:
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `289 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `291 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc build --no-pdf`: `26.0% compliant (baseline)`. The single-snapshot report shows "12 reversible fixes are planned".
 
@@ -2826,7 +2872,7 @@ business changes significantly. Changes are recorded and approved by the General
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `291 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
+- `.venv/Scripts/python -m pytest -q -W error`: `293 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`
 
@@ -2849,7 +2895,7 @@ What the workflows do:
   - undoes them from the backup, and checks that every setting and every registry key is back as it was.
 - **Pages:** builds the workbook, page and PDF from the committed snapshots, comparing with the baseline once an after snapshot exists, and deploys from `main`.
 
-These workflows first run when the repository is pushed (Task 8).
+These workflows first run when the repository is first pushed: privately before Task 6 if Ahmed agrees, otherwise in Task 8.
 
 - [ ] **Step 1: Write the workflows**
 
@@ -2886,6 +2932,7 @@ jobs:
   fix-scripts:
     name: Apply and undo the fixes (Windows)
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -3004,39 +3051,63 @@ git -c user.name="Ahmed Helal" -c user.email="abuh3lal@gmail.com" commit -m "Tes
 
 ### Task 6 (Ahmed): Apply the fixes and collect the after snapshot
 
-Claude prepares the commands and explains them; Ahmed runs every one of them himself. Before starting, the branch must be merged or checked out so `remediation/` exists.
+Claude prepares the commands and explains them; Ahmed runs every one of them himself.
+
+Before this task:
+- The final review must be fixed and the branch merged, so that `remediation/` is on `main`.
+- With Ahmed's agreement, CI's Windows apply-and-undo job should have passed once on a private copy of the repository. That way his PC is not the first real Windows run of the scripts.
+- If he prefers not to push yet, step 2 below gives backups that do not depend on the scripts.
 
 1. Open **Windows PowerShell as administrator** (right-click, Run as administrator), then `cd` to the repository.
-2. Preview without changing anything:
+2. Optional extra safety, if CI has not run the scripts yet. These backups do not depend on `apply.ps1`:
+   ```powershell
+   Checkpoint-Computer -Description 'Before ECC fixes'
+   auditpol /backup /file:$HOME\Documents\audit-before.csv
+   net accounts > $HOME\Documents\accounts-before.txt
+   ```
+3. Preview without changing anything:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1 -WhatIf
    ```
-   The table lists 54 settings with their current and new values (57 with `-IncludeLockout`).
-3. Decide on F08. Windows 11 already locks an account for 10 minutes after 10 wrong passwords. F08 makes that 15 minutes after 5, which also applies to failed-logon test bursts against his own account.
-4. Apply, and answer `Y` to the confirmation. Add `-IncludeLockout` only if he chose F08:
+   It lists the fixes by title, then 54 settings with their current and new values (57 with `-IncludeLockout`).
+4. Decide on F08. Windows 11 already locks an account for 10 minutes after 10 wrong passwords. F08 makes that 15 minutes after 5, which also applies to failed-logon test bursts against his own account.
+5. Apply, and answer `Y` to the confirmation. Add `-IncludeLockout` only if he chose F08:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1
    ```
-   Note the backup path it prints. To undo everything at any time:
+   The backup path is printed before any change. If anything goes wrong, the newest file in `remediation\backups` is the backup. Copy it outside the repository (for example to Documents), because a `git clean` or a fresh clone would delete it. To undo everything at any time:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\remediation\undo.ps1 -Backup <that path>
    ```
-5. Optional, for ECC 2-10-3: install pending Windows updates, and update or remove the apps that the Wazuh dashboard lists under Vulnerability Detection with High severity.
-6. Start Docker and Wazuh if they are not running. Restart the agent so it scans again, then wait until the dashboard's Configuration Assessment shows a scan time after the change:
+6. Let Windows apply the policy settings now, then check:
+   ```powershell
+   gpupdate /force
+   powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1 -WhatIf
+   Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, LogBlocked, LogAllowed, LogFileName
+   ```
+   The second command must report "0 of 54 settings will change" (or 0 of 57). The third must show logging on for all three profiles.
+7. Optional, for ECC 2-10-3: install pending Windows updates, and update or remove the apps that the Wazuh dashboard lists under Vulnerability Detection with High severity. Note what was patched, so the report can tell these changes apart from the fixes. Updates may restart the PC.
+8. Start Docker and Wazuh if they are not running. Restart the agent so it scans again, then wait until the dashboard's Configuration Assessment shows a scan time after the change:
    ```powershell
    Restart-Service WazuhSvc
    ```
-7. Set the same environment variables as for the baseline (indexer URL, TLS server name, CA path; password and names typed with `Read-Host`). Then run:
+9. Set the same environment variables as for the baseline (indexer URL, TLS server name, CA path; password and names typed with `Read-Host`). Then run:
    ```powershell
    .venv\Scripts\python -m ecc collect --label after
    ```
-8. Tell Claude. Claude reviews `snapshots/2026-10-after.json` before it is committed: allowlisted fields only, host `WS-01`, no names, and plausible counts.
+10. Tell Claude, and say whether F08 was applied and what was patched. Claude reviews `snapshots/<yyyy-mm>-after.json` before it is committed: allowlisted fields only, host `WS-01`, no names, and plausible counts.
 
 What Ahmed will notice afterwards:
 - Settings shows some pages as managed by your organisation.
-- AutoPlay no longer pops up.
-- The next local password change needs 14 or more characters.
-- The Security log and Wazuh receive more events.
+- AutoPlay no longer pops up when a drive or phone is connected (F10).
+- The next local password change needs 14 or more characters (F07). His Microsoft-account sign-in is not affected.
+- With F08, five wrong passwords lock the account for 15 minutes.
+- Standard (non-administrator) accounts can no longer approve elevation prompts (F09).
+- Mistyped names are no longer answered by LLMNR (F11).
+- Remote Assistance invitations stop working (F12).
+- The Security log and Wazuh receive more events (F02, F03).
+- Firewall logs appear under `System32\LogFiles\Firewall` (F05).
+- The bigger event logs and the firewall logs can use about 340 MB of disk in total.
 
 ---
 
@@ -3051,21 +3122,33 @@ The work in this task depends on the real after snapshot, so Claude writes it af
    - passing checks overall and per fix;
    - the vulnerability counts and SAMA levels.
 3. Rewrite `data/report.yaml` so the executive summary, key findings and limitations describe both snapshots. Say plainly why the ECC score moves little while many checks start passing: a control is Implemented only when all of its checks pass, and BitLocker cannot be enabled on Windows 11 Home.
-4. Add a drift test to `tests/test_real_data.py`: every figure the narrative quotes (percentages, check counts, vulnerability counts and the SAMA counts) must match what `assess()` computes from the committed snapshots.
-5. Rewrite `README.md`, with the honesty statement from spec section 3, covering:
+4. Fix the presentation items the final review deferred to this task:
+   - **Optional fixes:** record in `data/report.yaml` which optional fixes were applied. Show "Not applied" for the others and leave them out of the totals. Make `check` fail if a not-applied fix's checks changed.
+   - **Wording:** the Remediation note must be true whether or not `--before` is given; drop "planned" once an after snapshot exists.
+   - **Denominators:** add "of n" to the workbook's passing columns, and state which checks each table counts.
+   - **Changes outside the fixes:** in compare mode, list CIS checks that changed outside the fixes, especially any that went from passed to failed.
+   - **Evidence for the fix values:** commit the script that checks each fix value against its Wazuh SCA rule (as `tools/check_fixes.py`, with a test on a small synthetic policy).
+   - **Content:**
+     - the three policy headers list 1-3-4;
+     - R-04 says "until the first review";
+     - the 4-1-3 reason says "Rimal Byte's cloud service", and the company profile states the router firmware arrangement;
+     - the Method rule covers a requirement that is documented but not approved and not carried out;
+     - remove the unused local in `test_the_planned_fixes`.
+5. Add a drift test to `tests/test_real_data.py`: every figure the narrative quotes (percentages, check counts, vulnerability counts and the SAMA counts) must match what `assess()` computes from the committed snapshots.
+6. Rewrite `README.md`, with the honesty statement from spec section 3, covering:
    - what the project is;
    - the before/after results table;
    - what is measured and what is judged;
    - how to run `check`, `build`, `collect`, `apply.ps1` and `undo.ps1`;
    - the repository layout;
    - links to the live report.
-6. Add `LICENSE` (MIT, code) and `NOTICE`, which credits the sources and their terms:
+7. Add `LICENSE` (MIT, code) and `NOTICE`, which credits the sources and their terms:
    - the NCA ECC text in `data/catalog.yaml`;
    - Wazuh's GPLv2 SCA policy behind `data/cis_checks.yaml`;
    - the CIS Benchmark titles;
    - SAMA's framework structure in `data/sama_csf.yaml`.
-7. Build with the PDF, then check the page in the browser: desktop, phone width, and light and dark themes.
-8. Run the final whole-branch review (opus), apply the fixes it calls for, and merge to `main`.
+8. Build with the PDF, then check the page in the browser: desktop, phone width, and light and dark themes.
+9. Run the final whole-branch review (opus), apply the fixes it calls for, and merge to `main`.
 
 ---
 
@@ -3076,5 +3159,5 @@ The work in this task depends on the real after snapshot, so Claude writes it af
    - the licence;
    - the commit email (decision M9). The history and the plan documents use `abuh3lal@gmail.com`, which SENTINEL's public history already shows. The alternative is GitHub's noreply address, which means rewriting this unpublished history first.
 2. Claude scans the full history for private data: the Windows user name in paths, the computer name and the agent's real name. The only exception is the email address Ahmed chose.
-3. Claude creates the repository with `gh`, pushes `main`, sets Pages to deploy from GitHub Actions, and confirms that both CI jobs pass, including the Windows apply-and-undo round trip, and that the Pages site is live.
+3. Claude creates the repository with `gh` (or makes the private copy public), sets Pages to deploy from GitHub Actions before pushing `main`, pushes, and confirms that both CI jobs pass, including the Windows apply-and-undo round trip, and that the Pages site is live.
 4. Claude proposes one CV line and one LinkedIn project entry for Ahmed to approve, in the style of his existing CV.
