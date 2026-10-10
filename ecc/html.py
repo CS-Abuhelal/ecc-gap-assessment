@@ -12,7 +12,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from ecc.assess import Assessment, check_progress, compare, compliance, domain_scores
 from ecc.load import Dataset
-from ecc.models import Status
+from ecc.models import Status, long_date
 from ecc.remediation import fix_results
 from ecc.risk import BUCKET_ORDER, rating, risk_rows, roadmap
 from ecc.sama import level_counts, sama_view
@@ -38,12 +38,14 @@ class PdfError(Exception):
 
 
 def environment() -> Environment:
-    return Environment(
+    env = Environment(
         loader=PackageLoader("ecc", "templates"),
         autoescape=select_autoescape(["html", "j2"]),
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    env.filters["long_date"] = long_date
+    return env
 
 
 def report_context(

@@ -179,3 +179,12 @@ def test_a_single_snapshot_report_shows_the_planned_fixes(dataset, baseline):
     assert "2 reversible fixes are planned in remediation/fixes.json" in html
     assert "<b>0 of 2 targeted checks pass</b>." in html
     assert "CIS checks passing, by control" not in html
+
+
+def test_the_title_and_scope_name_the_company_safely(dataset, baseline):
+    report = dataset.report.model_copy(update={"company": "<b>Co</b>"})
+    changed = dataclasses.replace(dataset, report=report)
+    html = render_html(changed, assess(changed, baseline))
+    assert "<title>&lt;b&gt;Co&lt;/b&gt; &middot; NCA ECC Gap Assessment</title>" in html
+    assert "The assessment covers &lt;b&gt;Co&lt;/b&gt; as a whole." in html
+    assert "taken 12 October 2026" in html

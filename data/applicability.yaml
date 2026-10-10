@@ -18,5 +18,6 @@ not_applicable:
   - control: 4-1-3
     reason: >-
       Rimal Byte does not outsource IT or cybersecurity operations or managed services: the
-      internet provider supplies connectivity and its own router but does not run Rimal Byte's
-      systems, and its cloud service (Microsoft 365) is assessed under 4-2.
+      internet provider supplies connectivity and its own router, and applies the router's
+      firmware updates on request as part of that standard service, but does not run Rimal
+      Byte's systems; its cloud service (Microsoft 365) is assessed under 4-2.

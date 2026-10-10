@@ -29,6 +29,12 @@ AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-
 NOT_BLANK = r"\S"  # at least one character that is not whitespace
 HOST_PLACEHOLDER = "WS-01"
 
+
+def long_date(moment: date) -> str:
+    """'8 October 2026': the day without a leading zero, the month in full."""
+    return f"{moment.day} {moment:%B %Y}"
+
+
 ControlId = Annotated[str, Field(pattern=CONTROL_PATTERN)]
 FactName = Literal["vulnerabilities", "log_retention"]
 CheckResultValue = Literal["passed", "failed", "not applicable", "not scanned"]

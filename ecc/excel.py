@@ -14,7 +14,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from ecc.assess import Assessment, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.mapping import controls_for
-from ecc.models import Status
+from ecc.models import Status, long_date
 from ecc.remediation import fix_results
 from ecc.risk import risk_rows, roadmap
 from ecc.sama import sama_view
@@ -120,7 +120,7 @@ def write_summary(
     sheet.append(
         [
             "As of",
-            f"{snapshot.taken_at:%d %B %Y}, snapshot '{snapshot.label}', "
+            f"{long_date(snapshot.taken_at)}, snapshot '{snapshot.label}', "
             f"workstation {snapshot.host}",
         ]
     )

@@ -84,4 +84,4 @@ must report it to the Cybersecurity Lead.
 ## Review
 
 The Cybersecurity Lead reviews this policy every year in October, or sooner if the law or the
-business changes significantly. Changes are recorded and approved by the General Manager. [2-2-4]
+business changes significantly. Changes are recorded and approved by the General Manager. [1-3-4]

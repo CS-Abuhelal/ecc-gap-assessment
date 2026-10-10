@@ -1,9 +1,18 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from pydantic import ValidationError
 
-from ecc.models import HOST_PLACEHOLDER, EvidenceEntry, Risk, Rule, Snapshot, Status, weakest
+from ecc.models import (
+    HOST_PLACEHOLDER,
+    EvidenceEntry,
+    Risk,
+    Rule,
+    Snapshot,
+    Status,
+    long_date,
+    weakest,
+)
 
 SNAPSHOT = {
     "schema": 1,
@@ -79,3 +88,8 @@ def test_rule_needs_a_well_formed_target_control():
         Rule(cis="1.1", ecc=[], why="Password rules.")
     with pytest.raises(ValidationError):
         Rule(cis="1.1", ecc=["2.2.3"], why="Wrong id format.")
+
+
+def test_long_dates_have_no_leading_zero():
+    assert long_date(date(2026, 10, 8)) == "8 October 2026"
+    assert long_date(datetime(2026, 10, 12, 18, 0, tzinfo=UTC)) == "12 October 2026"

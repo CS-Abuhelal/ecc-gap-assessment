@@ -37,8 +37,8 @@ risks:
     controls: [1-3-4, 1-4-2, 1-5-4]
     statement: >-
       The first reviews of the policies, the roles and the risk method are not due until
-      October 2027, so until then duties such as the daily alert review could drift
-      without an owner and an incident could be missed.
+      October 2027, so a change in the business before then could leave a document out of date
+      for a few months.
     likelihood: 2
     impact: 2
     treatment: accept
@@ -87,8 +87,9 @@ risks:
   - id: R-09
     controls: [1-10-1, 1-10-2, 1-10-3, 1-10-4, 1-10-5]
     statement: >-
-      Staff have no security awareness training, so a phishing email is likely to lead to a
-      compromised Microsoft 365 account.
+      Staff have no security awareness training. Multi-factor sign-in stops simple password
+      theft, but phishing pages that relay the sign-in and steal the session still work, so a
+      phishing email is likely to lead to a compromised Microsoft 365 account.
     likelihood: 4
     impact: 4
     treatment: mitigate

@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NCA ECC Gap Assessment</title>
+<title>{{ report.company }} &middot; NCA ECC Gap Assessment</title>
 <style>
 :root {
   --bg: #ffffff; --fg: #1d2330; --muted: #5b6475; --line: #d9dde5; --panel: #f5f7fa;
@@ -79,7 +79,7 @@ a { color: var(--link); }
 <header>
   <h1>NCA ECC-2:2024 Gap Assessment</h1>
   <p class="company">{{ report.company }}</p>
-  <p class="meta">Workstation {{ snapshot.host }} &middot; snapshot &ldquo;{{ snapshot.label }}&rdquo; taken {{ snapshot.taken_at.strftime("%d %B %Y") }}{% if before_snapshot %} &middot; compared with &ldquo;{{ before_snapshot.label }}&rdquo; ({{ before_snapshot.taken_at.strftime("%d %B %Y") }}){% endif %}</p>
+  <p class="meta">Workstation {{ snapshot.host }} &middot; snapshot &ldquo;{{ snapshot.label }}&rdquo; taken {{ snapshot.taken_at|long_date }}{% if before_snapshot %} &middot; compared with &ldquo;{{ before_snapshot.label }}&rdquo; ({{ before_snapshot.taken_at|long_date }}){% endif %}</p>
   <p class="downloads"><a href="ecc-gap-assessment.xlsx">Download the workbook (.xlsx)</a><a href="ecc-gap-assessment.pdf">Download the report (PDF)</a></p>
 </header>
 
@@ -242,7 +242,7 @@ a { color: var(--link); }
 <h2 class="page-break">Method</h2>
 <ul>
   <li>Framework: NCA Essential Cybersecurity Controls (ECC-2:2024), {{ results|length }} main controls.</li>
-  <li>Controls without technical evidence are rated from documents and stated practices: a requirement documented and approved is Implemented, one being carried out is Partially implemented, a review with a set cycle that has not yet run is Partially implemented, and anything else is Not implemented.</li>
+  <li>Controls without technical evidence are rated from documents and stated practices: a requirement documented and approved is Implemented, one being carried out is Partially implemented, a review with a set cycle that has not yet run is Partially implemented, and a requirement that is neither documented nor carried out is Not implemented.</li>
   <li>Technical evidence: {{ check_count }} checks from the {{ policy_name }}, collected by Wazuh Security Configuration Assessment, plus open vulnerability counts and log retention.</li>
   <li>Checks rate a control Implemented when all usable checks pass, Partially implemented when some pass and Not implemented when none pass. Checks that are not applicable or were not scanned are left out.</li>
   <li>When a control has both technical and documentary evidence, it gets the weaker rating.</li>
