@@ -28,6 +28,7 @@ jobs:
   fix-scripts:
     name: Apply and undo the fixes (Windows)
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

@@ -106,7 +106,8 @@ function Get-FixItems {
             Assert-ItemAllowed $item
             if ($item.kind -eq 'registry') {
                 $fits = switch ($item.type) {
-                    'DWord' { Test-WholeNumber $item.value 0 4294967295 }
+                    # Larger DWords read back as negative numbers and could not be verified.
+                    'DWord' { Test-WholeNumber $item.value 0 2147483647 }
                     'String' { $item.value -is [string] }
                     default { $false }
                 }
@@ -120,6 +121,7 @@ function Get-FixItems {
             }
             $copy = $item.PSObject.Copy()
             $copy | Add-Member -NotePropertyName fix -NotePropertyValue $fix.id
+            $copy | Add-Member -NotePropertyName title -NotePropertyValue $fix.title
             $copy
         }
     }
@@ -352,6 +354,7 @@ function Set-ItemState {
             $value = [int]$State.value
             # Windows refuses a lockout window longer than the lockout duration. When this change
             # would break that, the other setting moves first; its own item sets it again later.
+            # This relies on F08 listing both settings, so both are backed up and restored.
             if ($State.option -in @('lockoutduration', 'lockoutwindow')) {
                 $now = Get-AccountSettings
                 if ($State.option -eq 'lockoutduration' -and $value -gt 0 -and $now['lockoutwindow'] -gt $value) {
@@ -442,6 +445,8 @@ function Invoke-Apply {
             ForEach-Object { Get-MissingKeys $_.Item.path } | Sort-Object -Unique
     )
     $backupPath = Save-Backup -States @($Plan | ForEach-Object { $_.Current }) -CreatedKeys $created -Directory $BackupDirectory
+    # Shown before any change, so the path is on screen even if the window is closed mid-way.
+    Write-Host "Saved the current values to $backupPath"
     try {
         foreach ($step in $Plan) { Set-ItemState $step.Target }
         $mismatches = @(Find-Mismatches -Expected @($Plan | ForEach-Object { $_.Target }))

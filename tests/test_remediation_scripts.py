@@ -75,9 +75,10 @@ def powershell(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
 
 
 def result(tmp_path: Path, body: str) -> Any:
+    """Run a script whose last output line is JSON (lines before it are progress messages)."""
     done = powershell(tmp_path, body)
     assert done.returncode == 0, done.stderr
-    return json.loads(done.stdout)
+    return json.loads(done.stdout.strip().splitlines()[-1])
 
 
 @pytest.fixture
@@ -424,6 +425,35 @@ def test_a_crafted_backup_is_refused(tmp_path, items, created, message):
     done = powershell(tmp_path, f"Read-Backup -Path '{path}' | Out-Null")
     assert done.returncode != 0
     assert message in done.stderr
+
+
+def test_a_backup_of_this_pcs_settings_can_be_read_back(tmp_path):
+    # Reads the real registry and 'net accounts' (nothing is changed); only the audit settings,
+    # which need an administrator to read, are faked as 'No auditing'.
+    fixes = ROOT / "remediation" / "fixes.json"
+    found = result(
+        tmp_path,
+        f"""
+$items = @(Get-FixItems -Path '{fixes}' -IncludeOptional)
+$csv = @('Machine Name,Policy Target,Subcategory,Subcategory GUID,' +
+    'Inclusion Setting,Exclusion Setting,Setting Value')
+foreach ($item in ($items | Where-Object {{ $_.kind -eq 'audit' }})) {{
+    $csv += "DESKTOP-TEST1,System,$($item.subcategory),$($item.guid),No Auditing,,0"
+}}
+& (Get-Module Remediation) {{
+    param($lines)
+    $script:FakeAudit = ConvertFrom-AuditBackup -Lines $lines
+    function script:Get-AuditSettings {{ $script:FakeAudit }}
+}} $csv
+$plan = @(Get-Plan -Items $items)
+$states = @($plan | ForEach-Object {{ $_.Current }})
+$path = Save-Backup -States $states -Directory (Join-Path '{tmp_path}' 'backups')
+$backup = Read-Backup -Path $path
+@{{ items = @($backup.items).Count; rows = @(Format-Backup -Backup $backup).Count }} |
+    ConvertTo-Json -Compress
+""",
+    )
+    assert found == {"items": 57, "rows": 57}
 
 
 def test_a_failed_change_undoes_the_others(tmp_path, key):

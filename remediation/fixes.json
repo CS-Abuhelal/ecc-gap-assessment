@@ -151,7 +151,7 @@
       "id": "F03",
       "title": "Record the command line of new processes",
       "why": "Process-start events (4688) then show how a program was started, not only its name.",
-      "effect": "Command lines appear in the Security log and in Wazuh on this PC.",
+      "effect": "Command lines appear in the Security log and in Wazuh on this PC, including anything typed as an argument, so passwords must never be passed on a command line.",
       "checks": [
         26222
       ],
@@ -508,7 +508,7 @@
       "id": "F11",
       "title": "Turn off multicast name resolution and allow DNS over HTTPS",
       "why": "Without LLMNR, a device on the same network cannot answer for a mistyped name and capture a sign-in, the trick tools like Responder use.",
-      "effect": "Names are resolved by DNS only; DNS over HTTPS is allowed, not forced.",
+      "effect": "Names are no longer resolved by LLMNR (DNS, NetBIOS and mDNS still work); DNS over HTTPS is allowed, not forced.",
       "checks": [
         26191,
         26193

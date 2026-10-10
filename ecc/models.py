@@ -323,9 +323,10 @@ class RegistryItem(Strict):
     @model_validator(mode="after")
     def _value_fits_type(self) -> RegistryItem:
         if self.type == "DWord" and not (
-            isinstance(self.value, int) and 0 <= self.value <= 0xFFFFFFFF
+            isinstance(self.value, int) and 0 <= self.value <= 0x7FFFFFFF
         ):
-            raise ValueError("a DWord value must be a whole number from 0 to 4294967295")
+            # Windows reads larger DWords back as negative numbers, so they could not be verified.
+            raise ValueError("a DWord value must be a whole number from 0 to 2147483647")
         if self.type == "String" and not isinstance(self.value, str):
             raise ValueError("a String value must be text")
         return self

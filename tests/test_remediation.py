@@ -46,6 +46,7 @@ def item_with(**changes):
         {"type": "QWord"},
         {"value": "1"},
         {"value": -1},
+        {"value": 2147483648},
         {"type": "String", "value": 1},
     ],
 )

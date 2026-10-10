@@ -11,7 +11,11 @@ Run it from an administrator Windows PowerShell in the repository folder:
 -WhatIf shows every setting with its current and new value and changes nothing. Without it,
 the script asks once for confirmation, writes remediation\backups\<time>.json, applies the
 changes and checks each one. If any change fails, it undoes all of them from the backup.
-undo.ps1 restores a backup later. No change needs a restart.
+undo.ps1 restores a backup later. Copy the backup file somewhere outside the repository too.
+
+The CIS checks see every change at once, without a restart. Windows itself applies firewall
+logging, event log sizes and name resolution at its next policy refresh (gpupdate /force or a
+restart), and the built-in Administrator setting at that account's next sign-in.
 
 .PARAMETER IncludeLockout
 Also apply F08 (lock an account for 15 minutes after 5 wrong passwords).
@@ -27,6 +31,8 @@ Assert-Administrator
 $items = @(Get-FixItems -Path (Join-Path $PSScriptRoot 'fixes.json') -IncludeOptional:$IncludeLockout)
 $plan = @(Get-Plan -Items $items)
 
+Write-Host 'Fixes:'
+$items | Group-Object fix | ForEach-Object { Write-Host ('  {0}  {1}' -f $_.Name, $_.Group[0].title) }
 Format-Plan -Plan $plan | Format-Table -AutoSize -Wrap | Out-String -Width 200 | Write-Host
 $changing = Get-ChangeCount -Plan $plan
 Write-Host "$changing of $($plan.Count) settings will change."
@@ -42,5 +48,6 @@ if (-not $PSCmdlet.ShouldProcess('this PC', "Change $changing Windows settings")
 
 $backup = Invoke-Apply -Plan $plan -BackupDirectory $backups
 Write-Host "Done. Every setting was checked after the change."
-Write-Host "Backup of the old values: $backup"
+Write-Host "Backup of the old values: $backup (copy it outside the repository as well)"
 Write-Host "To undo: powershell -ExecutionPolicy Bypass -File .\remediation\undo.ps1 -Backup `"$backup`""
+Write-Host 'Next: run gpupdate /force so Windows applies the policy settings now.'
