@@ -14,7 +14,7 @@
 
 **Tech Stack:** As in plan 3.
 
-Every code block below was applied to a copy of the repository at b568925 and verified: 305 tests pass, ruff is clean, `check` passes, and `python -m tools.check_fixes` reports 0 problems against the Wazuh policy installed on WS-01.
+Every code block below was applied to a copy of the repository at b568925 and verified: 313 tests pass, ruff is clean, `check` passes, and `python -m tools.check_fixes` reports 0 problems against the Wazuh policy installed on WS-01.
 
 ## Global Constraints
 
@@ -66,7 +66,7 @@ def test_an_optional_fix_counts_as_applied_only_when_listed(dataset, baseline, a
     report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
     unlisted = fix_results(dataclasses.replace(dataset, report=report), after, baseline)
     assert [row.applied for row in unlisted] == [True, False]
-    assert [row.applied for row in fix_results(dataset, baseline)] == [None, None]
+    assert [row.applied for row in fix_results(dataset, baseline)] == [True, True]
 
 
 def test_changes_outside_the_fixes_are_listed(dataset, baseline, after):
@@ -77,6 +77,12 @@ def test_changes_outside_the_fixes_are_listed(dataset, baseline, after):
     ]
     changed = other_changes(dataset, baseline, after.model_copy(update={"checks": tuple(results)}))
     assert [(c.check.id, c.before, c.after) for c in changed] == [(26001, "passed", "failed")]
+
+
+def test_checks_of_a_fix_left_out_count_as_outside_the_fixes(dataset, baseline, after):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    unlisted = dataclasses.replace(dataset, report=report)
+    assert [c.check.id for c in other_changes(unlisted, baseline, after)] == [26139]
 ```
 
 In `tests/test_remediation.py`, replace:
@@ -180,6 +186,15 @@ def test_an_optional_fix_left_out_is_marked_and_not_counted(dataset, baseline, a
     assert '<td>2-12-3</td><td class="nowrap">Not applied</td>' in html
 
 
+def test_a_single_snapshot_report_also_marks_a_fix_left_out(dataset, baseline):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    changed = dataclasses.replace(dataset, report=report)
+    html = render_html(changed, assess(changed, baseline))
+    assert "the optional F02 is left out" in html
+    assert "<b>0 of 1 targeted checks pass</b>." in html
+    assert '<td>2-12-3</td><td class="nowrap">Not applied</td>' in html
+
+
 def test_checks_changed_outside_the_fixes_are_listed(dataset, baseline, after):
     results = tuple(
         check.model_copy(update={"result": "failed"}) if check.id == 26001 else check
@@ -187,7 +202,7 @@ def test_checks_changed_outside_the_fixes_are_listed(dataset, baseline, after):
     )
     later = after.model_copy(update={"checks": results})
     html = render_html(dataset, assess(dataset, later), assess(dataset, baseline))
-    assert "No fix targets these checks" in html
+    assert "No applied fix targets these checks" in html
     assert "<td>26001</td><td>1.1.2</td>" in html
     assert "<td>passed</td><td>failed</td>" in html
 ```
@@ -204,10 +219,36 @@ In `tests/test_excel.py`, replace:
 with:
 
 ```python
-    header = ["CIS checks", "Checks", "ECC controls", "baseline passing", "after passing"]
+    header = ["CIS checks", "Number of checks", "ECC controls", "baseline passing", "after passing"]
     assert values(sheet, 1)[5:] == header
     assert values(sheet, 2)[0] == "F01"
     assert values(sheet, 3)[4:] == ["Yes, applied", "26139", 1, "2-12-3", 0, 1]
+```
+
+Append to the end of `tests/test_excel.py`:
+
+```python
+
+
+def test_a_fix_left_out_shows_as_not_applied(tmp_path, dataset, baseline, after):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    changed = dataclasses.replace(dataset, report=report)
+    sheet = workbook(tmp_path, changed, after, baseline)["Remediation"]
+    assert values(sheet, 3)[4:] == ["Yes, not applied", "26139", 1, "2-12-3"] + ["Not applied"] * 2
+```
+
+In `tests/test_excel.py`, replace:
+
+```python
+from openpyxl import load_workbook
+```
+
+with:
+
+```python
+import dataclasses
+
+from openpyxl import load_workbook
 ```
 
 In `tests/test_real_data.py`, replace:
@@ -297,6 +338,43 @@ def test_an_unknown_check_is_caught():
     assert found == ["F02: check 99999 is not in the policy"]
 
 
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ({"condition": "any"}, "its condition is 'any'"),
+        (
+            {"rules": [r'not c:auditpol.exe /get /subcategory:"Credential Validation" -> r:No'
+                       r" Auditing"]},
+            "it has a rule this script does not read",
+        ),
+    ],
+)
+def test_checks_it_cannot_read_are_reported_not_passed(change, reason):
+    policy = copy.deepcopy(POLICY)
+    policy["checks"][2].update(change)
+    found = problems(policy, fixes_with())
+    assert len(found) == 1
+    assert found[0].startswith(f"F02: check 26139 cannot be verified: {reason}")
+
+
+LOG_SIZE = r"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security"
+
+
+@pytest.mark.parametrize(("value", "ok"), [(196608, True), (200000, True), (32768, False)])
+def test_registry_numbers_are_compared(value, ok):
+    item = {
+        "kind": "registry",
+        "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Security",
+        "name": "MaxSize",
+        "type": "DWord",
+        "value": value,
+    }
+    fix = {"id": "F04", "title": "t", "why": "w", "effect": "e", "checks": [26376], "items": [item]}
+    rule = f"r:{LOG_SIZE} -> MaxSize -> n:^(\\d+) compare >= 196608"
+    policy = {"checks": [{"id": 26376, "condition": "all", "rules": [rule]}]}
+    assert (problems(policy, {"fixes": [fix]}) == []) is ok
+
+
 @pytest.mark.skipif(not DEFAULT_POLICY.is_file(), reason="needs the Wazuh agent's SCA policy")
 def test_the_real_fixes_match_the_installed_wazuh_policy(capsys):
     assert main(["check_fixes", str(DEFAULT_POLICY), str(ROOT / DEFAULT_FIXES)]) == 0
@@ -346,13 +424,16 @@ from ecc.models import CisCheck, Fix, Snapshot
 
 @dataclass(frozen=True)
 class FixResult:
-    """A fix with its ECC controls and passing checks. `applied` is None without a before."""
+    """A fix with its ECC controls and passing checks.
+
+    `applied` is False only for an optional fix missing from report.yaml's optional_fixes_applied.
+    """
 
     fix: Fix
     controls: tuple[str, ...]
     before: int | None
     after: int
-    applied: bool | None
+    applied: bool
 
 
 @dataclass(frozen=True)
@@ -392,15 +473,21 @@ with:
 ```python
                 before=passing(before, fix.checks) if before is not None else None,
                 after=passing(after, fix.checks),
-                applied=None if before is None else not fix.optional or fix.id in chosen,
+                applied=not fix.optional or fix.id in chosen,
             )
         )
     return tuple(rows)
 
 
 def other_changes(dataset: Dataset, before: Snapshot, after: Snapshot) -> tuple[CheckChange, ...]:
-    """CIS checks that no fix targets but whose result changed between the two snapshots."""
-    targeted = {check for fix in dataset.fixes.fixes for check in fix.checks}
+    """CIS checks that no applied fix targets but whose result changed between two snapshots."""
+    chosen = set(dataset.report.optional_fixes_applied)
+    targeted = {
+        check
+        for fix in dataset.fixes.fixes
+        if not fix.optional or fix.id in chosen
+        for check in fix.checks
+    }
     old = {check.id: check.result for check in before.checks}
     new = {check.id: check.result for check in after.checks}
     return tuple(
@@ -504,7 +591,7 @@ with:
 {% endif %}
 <h3>CIS checks that changed outside the fixes</h3>
 {% if other_changes %}
-<p class="note">No fix targets these checks, so other changes on the PC, such as Windows updates, moved them.</p>
+<p class="note">No applied fix targets these checks, so something else on the PC changed them, for example a Windows update.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Check</th><th>CIS</th><th>Title</th><th>{{ before_snapshot.label }}</th><th>{{ snapshot.label }}</th></tr></thead>
 <tbody>
@@ -532,13 +619,12 @@ In `ecc/templates/report.html.j2`, replace:
 with:
 
 ```html
-{% if before_snapshot %}
 {% set left_out = fixes|rejectattr("applied")|map(attribute="fix.id")|list %}
 {% set counted = fixes|selectattr("applied")|list %}
+{% if before_snapshot %}
 <p class="note">The fixes in remediation/fixes.json were applied with remediation/apply.ps1 between the &ldquo;{{ before_snapshot.label }}&rdquo; and &ldquo;{{ snapshot.label }}&rdquo; snapshots{% if left_out %}, except the optional {{ left_out|join(", ") }}, which {{ "was" if left_out|length == 1 else "were" }} left out{% endif %}. Each row counts the fix's own CIS checks that pass, out of all the checks it targets.</p>
 {% else %}
-{% set counted = fixes %}
-<p class="note">{{ fixes|length }} reversible fixes are listed in remediation/fixes.json. remediation/apply.ps1 applies them after saving the old values, and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass in this snapshot, out of all the checks it targets.</p>
+<p class="note">{{ fixes|length }} reversible fixes are listed in remediation/fixes.json{% if left_out %}; the optional {{ left_out|join(", ") }} {{ "is" if left_out|length == 1 else "are" }} left out{% endif %}. remediation/apply.ps1 applies them after saving the old values (an optional fix only when chosen), and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass in this snapshot, out of all the checks it targets.</p>
 {% endif %}
 <p><b>{{ counted|sum(attribute="after") }} of {{ counted|map(attribute="fix.checks")|map("length")|sum }} targeted checks pass</b>{% if before_snapshot %} (was {{ counted|sum(attribute="before") }}){% endif %}.</p>
 ```
@@ -570,8 +656,8 @@ with:
 
 ```python
     rows = fix_results(dataset, after.snapshot, before.snapshot if before is not None else None)
-    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks", "Checks"]
-    header.append("ECC controls")
+    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks"]
+    header += ["Number of checks", "ECC controls"]
     if before is not None:
         header.append(f"{before.snapshot.label} passing")
     header.append(f"{after.snapshot.label} passing")
@@ -598,12 +684,11 @@ with:
                 ", ".join(str(check) for check in row.fix.checks),
                 len(row.fix.checks),
                 ", ".join(row.controls),
-                *([row.before] if before is not None else []),
-                row.after,
+                *passing_cells(row, before is not None),
             ]
             for row in rows
         ],
-        [6, 36, 48, 48, 16, 30, 8, 18, 12, 12],
+        [6, 36, 48, 48, 16, 30, 10, 18, 12, 12],
 ```
 
 In `ecc/excel.py`, replace:
@@ -618,9 +703,14 @@ with:
 def optional_label(row: FixResult) -> str:
     if not row.fix.optional:
         return "No"
-    if row.applied is None:
-        return "Yes"
     return "Yes, applied" if row.applied else "Yes, not applied"
+
+
+def passing_cells(row: FixResult, comparing: bool) -> list[int | str | None]:
+    """The passing counts, or 'Not applied' for an optional fix that was left out."""
+    if not row.applied:
+        return ["Not applied"] * (2 if comparing else 1)
+    return [row.before, row.after] if comparing else [row.after]
 
 
 def write_remediation(
@@ -811,15 +901,30 @@ def satisfies(item: dict[str, Any], rule: str) -> bool:
     return False
 
 
+def unverifiable(check: dict[str, Any]) -> str | None:
+    """Why this script cannot judge a check, or None. Only 'all' checks of plain rules are read."""
+    condition = check.get("condition", "all")
+    if condition != "all":
+        return f"its condition is '{condition}'"
+    for rule in check["rules"]:
+        if not rule.startswith(("r:", "c:")):
+            return f"it has a rule this script does not read: {rule}"
+    return None
+
+
 def problems(policy: dict[str, Any], fixes: dict[str, Any]) -> list[str]:
-    rules = {int(check["id"]): check["rules"] for check in policy["checks"]}
+    checks = {int(check["id"]): check for check in policy["checks"]}
     found: list[str] = []
     for fix in fixes["fixes"]:
         for check in fix["checks"]:
-            if check not in rules:
+            if check not in checks:
                 found.append(f"{fix['id']}: check {check} is not in the policy")
                 continue
-            for rule in filter(is_value_rule, rules[check]):
+            reason = unverifiable(checks[check])
+            if reason:
+                found.append(f"{fix['id']}: check {check} cannot be verified: {reason}")
+                continue
+            for rule in filter(is_value_rule, checks[check]["rules"]):
                 if not any(satisfies(item, rule) for item in fix["items"]):
                     found.append(f"{fix['id']}: no item satisfies check {check}: {rule}")
     return found
@@ -845,7 +950,7 @@ if __name__ == "__main__":
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `305 passed`. On WS-01 this includes the real Wazuh policy check; elsewhere that one test is skipped.
+- `.venv/Scripts/python -m pytest -q -W error`: `313 passed`. On WS-01 this includes the real Wazuh policy check; elsewhere that one test is skipped.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`: `OK: 108 controls, 482 checks, 2 snapshot(s).`
 - `.venv/Scripts/python -m tools.check_fixes`: `0 problem(s) in 12 fixes covering 57 checks.`
