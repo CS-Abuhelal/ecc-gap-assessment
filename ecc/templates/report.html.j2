@@ -129,6 +129,17 @@ a { color: var(--link); }
 {% else %}
 <p class="note">No control changed status.</p>
 {% endif %}
+{% if progress %}
+<h3>CIS checks passing, by control</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Control</th><th>{{ before_snapshot.label }}</th><th>{{ snapshot.label }}</th></tr></thead>
+<tbody>
+{% for p in progress %}
+<tr><td>{{ p.control.id }} {{ p.control.subdomain_title }}</td><td>{{ p.before[0] }} of {{ p.before[1] }}</td><td>{{ p.after[0] }} of {{ p.after[1] }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+<p class="note">A control is Implemented only when every one of its checks passes, so it can gain many passing checks and keep its rating.</p>
+{% endif %}
 {% endif %}
 
 <h2>Controls</h2>
@@ -178,6 +189,23 @@ a { color: var(--link); }
 {% endfor %}
 {% if not roadmap %}
 <p class="note">No open risks.</p>
+{% endif %}
+
+{% if fixes %}
+<h2>Remediation on {{ snapshot.host }}</h2>
+{% if before_snapshot %}
+<p class="note">The fixes in remediation/fixes.json were applied with remediation/apply.ps1 between the &ldquo;{{ before_snapshot.label }}&rdquo; and &ldquo;{{ snapshot.label }}&rdquo; snapshots (an optional fix only when chosen). Each row counts the fix's own CIS checks that pass.</p>
+{% else %}
+<p class="note">{{ fixes|length }} reversible fixes are planned in remediation/fixes.json. remediation/apply.ps1 applies them after saving the old values, and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass now.</p>
+{% endif %}
+<p><b>{{ fixes|sum(attribute="after") }} of {{ fixes|map(attribute="fix.checks")|map("length")|sum }} targeted checks pass</b>{% if before_snapshot %} (was {{ fixes|sum(attribute="before") }}){% endif %}.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Fix</th><th>Change</th><th>ECC controls</th><th>Checks passing</th></tr></thead>
+<tbody>
+{% for row in fixes %}
+<tr><td>{{ row.fix.id }}</td><td><b>{{ row.fix.title }}</b>{% if row.fix.optional %} (optional){% endif %}<br>{{ row.fix.why }}</td><td>{{ row.controls|join(", ") }}</td><td class="nowrap">{% if row.before is not none %}{{ row.before }} &rarr; {% endif %}{{ row.after }} of {{ row.fix.checks|length }}</td></tr>
+{% endfor %}
+</tbody></table></div>
 {% endif %}
 
 <h2>SAMA Cyber Security Framework view (indicative)</h2>

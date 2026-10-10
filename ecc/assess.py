@@ -159,3 +159,26 @@ def compare(before: Assessment, after: Assessment) -> tuple[Change, ...]:
         for result in after.results
         if old.get(result.control.id) != result.status
     )
+
+
+@dataclass(frozen=True)
+class CheckProgress:
+    control: Control
+    before: tuple[int, int]
+    after: tuple[int, int]
+
+
+def check_counts(result: ControlResult) -> tuple[int, int]:
+    """Passed and usable CIS checks of one control."""
+    usable = [outcome.result for outcome in result.checks if outcome.result in USABLE]
+    return usable.count("passed"), len(usable)
+
+
+def check_progress(before: Assessment, after: Assessment) -> tuple[CheckProgress, ...]:
+    """Passed checks in both snapshots, for every control that CIS checks measure."""
+    old = {result.control.id: result for result in before.results}
+    return tuple(
+        CheckProgress(result.control, check_counts(old[result.control.id]), check_counts(result))
+        for result in after.results
+        if result.checks and result.control.id in old
+    )

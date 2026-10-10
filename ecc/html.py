@@ -10,9 +10,10 @@ from typing import Any
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from ecc.assess import Assessment, compare, compliance, domain_scores
+from ecc.assess import Assessment, check_progress, compare, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.models import Status
+from ecc.remediation import fix_results
 from ecc.risk import BUCKET_ORDER, rating, risk_rows, roadmap
 from ecc.sama import level_counts, sama_view
 
@@ -76,6 +77,10 @@ def report_context(
         "unrated": sum(1 for r in after.results if r.status is None),
         "results": after.results,
         "changes": compare(before, after) if before is not None else (),
+        "progress": check_progress(before, after) if before is not None else (),
+        "fixes": fix_results(
+            dataset, after.snapshot, before.snapshot if before is not None else None
+        ),
         "risks": rows,
         "open_risks": open_rows,
         "heatmap": heatmap,

@@ -15,6 +15,7 @@ from ecc.assess import Assessment, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.mapping import controls_for
 from ecc.models import Status
+from ecc.remediation import fix_results
 from ecc.risk import risk_rows, roadmap
 from ecc.sama import sama_view
 
@@ -24,6 +25,7 @@ SHEETS = (
     "Technical evidence",
     "Risk register",
     "Roadmap",
+    "Remediation",
     "SAMA CSF view (indicative)",
 )
 LEVEL_COLOURS = {0: "FFC7CE", 1: "FCE4D6", 2: "FFEB9C", 3: "C6EFCE"}
@@ -253,6 +255,37 @@ def write_sama(sheet: Worksheet, dataset: Dataset, after: Assessment) -> None:
                 sheet.cell(row=row_number, column=6).number_format = "0.0"
 
 
+def write_remediation(
+    sheet: Worksheet, dataset: Dataset, after: Assessment, before: Assessment | None
+) -> None:
+    rows = fix_results(dataset, after.snapshot, before.snapshot if before is not None else None)
+    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks"]
+    header.append("ECC controls")
+    if before is not None:
+        header.append(f"{before.snapshot.label} passing")
+    header.append(f"{after.snapshot.label} passing")
+    table(
+        sheet,
+        header,
+        [
+            [
+                row.fix.id,
+                row.fix.title,
+                row.fix.why,
+                row.fix.effect,
+                "Yes" if row.fix.optional else "No",
+                ", ".join(str(check) for check in row.fix.checks),
+                ", ".join(row.controls),
+                *([row.before] if before is not None else []),
+                row.after,
+            ]
+            for row in rows
+        ],
+        [6, 36, 48, 48, 9, 30, 18, 12, 12],
+        autofilter=True,
+    )
+
+
 def write_workbook(
     path: Path, dataset: Dataset, after: Assessment, before: Assessment | None = None
 ) -> None:
@@ -264,6 +297,7 @@ def write_workbook(
     write_controls(sheets[1], after)
     write_checks(sheets[2], dataset, after)
     write_risks(sheets[3], sheets[4], dataset, after)
-    write_sama(sheets[5], dataset, after)
+    write_remediation(sheets[5], dataset, after, before)
+    write_sama(sheets[6], dataset, after)
     path.parent.mkdir(parents=True, exist_ok=True)
     book.save(path)

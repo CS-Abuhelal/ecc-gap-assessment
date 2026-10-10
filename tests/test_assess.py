@@ -2,7 +2,14 @@ from dataclasses import replace
 
 import pytest
 
-from ecc.assess import assess, compare, compliance, domain_scores, rate_checks
+from ecc.assess import (
+    assess,
+    check_progress,
+    compare,
+    compliance,
+    domain_scores,
+    rate_checks,
+)
 from ecc.models import CheckResult, Evidence, EvidenceEntry, Status
 
 
@@ -101,3 +108,9 @@ def test_compare_lists_changed_controls(dataset, baseline, after):
         ("2-2-3", Status.PARTIAL, Status.IMPLEMENTED),
         ("2-12-3", Status.NOT_IMPLEMENTED, Status.PARTIAL),
     ]
+
+
+def test_check_progress_counts_passing_checks_per_control(dataset, baseline, after):
+    progress = check_progress(assess(dataset, baseline), assess(dataset, after))
+    found = {p.control.id: (p.before, p.after) for p in progress}
+    assert found == {"2-2-3": ((1, 2), (2, 2)), "2-12-3": ((0, 1), (1, 1))}

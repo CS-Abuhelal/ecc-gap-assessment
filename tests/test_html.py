@@ -161,3 +161,21 @@ def test_sama_text_is_escaped(dataset, baseline):
     html = render_html(changed, assess(changed, baseline))
     assert "&lt;i&gt;No&lt;/i&gt; cards." in html
     assert "<i>No</i>" not in html
+
+
+def test_the_report_shows_remediation_results(dataset, baseline, after):
+    html = render_html(dataset, assess(dataset, after), assess(dataset, baseline))
+    assert "<h2>Remediation on WS-01</h2>" in html
+    assert "were applied with remediation/apply.ps1" in html
+    assert "<b>2 of 2 targeted checks pass</b> (was 0)." in html
+    assert "<td>2-12-3</td><td class=\"nowrap\">0 &rarr; 1 of 1</td>" in html
+    assert "Audit sign-ins</b> (optional)" in html
+    assert "<h3>CIS checks passing, by control</h3>" in html
+    assert "<td>2-2-3 Identity and Access Management</td><td>1 of 2</td><td>2 of 2</td>" in html
+
+
+def test_a_single_snapshot_report_shows_the_planned_fixes(dataset, baseline):
+    html = render_html(dataset, assess(dataset, baseline))
+    assert "2 reversible fixes are planned in remediation/fixes.json" in html
+    assert "<b>0 of 2 targeted checks pass</b>." in html
+    assert "CIS checks passing, by control" not in html

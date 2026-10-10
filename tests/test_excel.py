@@ -127,3 +127,17 @@ def test_the_sama_sheet(tmp_path, dataset, baseline):
     )
     assert rows["3.3.12"][4:8] == (None, "n/a", "n/a", "Example Co runs no payment systems.")
     assert rows["3.1.4"][7] == "Roles are not written down."
+
+
+def test_the_remediation_sheet_compares_two_snapshots(tmp_path, dataset, baseline, after):
+    sheet = workbook(tmp_path, dataset, after, baseline)["Remediation"]
+    header = ["CIS checks", "ECC controls", "baseline passing", "after passing"]
+    assert values(sheet, 1)[5:] == header
+    assert values(sheet, 2)[0] == "F01"
+    assert values(sheet, 3)[4:] == ["Yes", "26139", "2-12-3", 0, 1]
+
+
+def test_the_remediation_sheet_for_one_snapshot(tmp_path, dataset, baseline):
+    sheet = workbook(tmp_path, dataset, baseline)["Remediation"]
+    assert values(sheet, 1)[-2:] == ["ECC controls", "baseline passing"]
+    assert values(sheet, 2)[-1] == 0
