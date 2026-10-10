@@ -1,0 +1,61 @@
+name: Report site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the report from the committed snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      # Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs; allow them on this VM
+      # instead of turning the sandbox off.
+      - name: Let headless Chrome use its sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Build the workbook, web page and PDF
+        run: |
+          if ls snapshots/*-after.json > /dev/null 2>&1; then
+            python -m ecc build --before baseline --after after
+          else
+            python -m ecc build
+          fi
+
+      - uses: actions/configure-pages@v6
+        if: github.ref == 'refs/heads/main'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: build
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

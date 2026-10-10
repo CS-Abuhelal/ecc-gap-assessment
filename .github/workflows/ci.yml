@@ -6,12 +6,51 @@ on:
 
 jobs:
   test:
+    name: Lint, test and build (Ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: pytest -q
+      - name: Check the data files and build the report from the committed snapshots
+        run: |
+          python -m ecc check
+          python -m ecc build --no-pdf
+
+  fix-scripts:
+    name: Apply and undo the fixes (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -q
+      # The runner is a throwaway VM with administrator rights, so the real scripts can run here.
+      - name: Apply every fix, check it took, undo it, and check nothing is left changed
+        shell: powershell
+        run: |
+          Import-Module .\remediation\Remediation.psm1
+          $items = @(Get-FixItems -Path .\remediation\fixes.json -IncludeOptional)
+          $keys = @($items | Where-Object { $_.kind -eq 'registry' } | ForEach-Object { $_.path } | Sort-Object -Unique)
+          $before = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
+          $keysBefore = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
+
+          .\remediation\apply.ps1 -IncludeLockout -Confirm:$false
+          $missed = @(Get-Plan -Items $items | Where-Object { -not (Test-StateMatch -Actual $_.Current -Expected $_.Target) })
+          if ($missed.Count) { throw "apply.ps1 left $($missed.Count) settings unchanged" }
+
+          $backup = Get-ChildItem .\remediation\backups\*.json | Sort-Object Name | Select-Object -Last 1
+          .\remediation\undo.ps1 -Backup $backup.FullName -Confirm:$false
+          $after = @(Get-Plan -Items $items | ForEach-Object { $_.Current }) | ConvertTo-Json -Depth 5
+          $keysAfter = @($keys | ForEach-Object { Test-Path -LiteralPath $_ }) -join ','
+          if ($before -ne $after) { throw 'undo.ps1 did not restore every setting' }
+          if ($keysBefore -ne $keysAfter) { throw 'undo.ps1 left registry keys behind' }
+          Write-Host "apply.ps1 changed and undo.ps1 restored all $($items.Count) settings."
