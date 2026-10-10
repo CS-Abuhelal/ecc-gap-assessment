@@ -14,7 +14,7 @@
 - Spec section 8, and spec section 15 (added with this plan): `docs/superpowers/specs/2026-10-08-ecc-gap-assessment-design.md`.
 
 Every code block and data file below was applied to a copy of the repository and verified before this plan was written:
-- Test counts after each task: Task 1 251, Task 2 263, Task 3 268, Task 4 270.
+- Test counts after each task: Task 1 257, Task 2 272, Task 3 277, Task 4 279.
 - ruff is clean and `check` passes after every task.
 - A read-only dry run of the real fix list on WS-01 showed all 57 settings with their current and new values.
 - A simulated after snapshot (every fix applied, high-severity vulnerabilities patched) gives 27.0% and 176 of 473 checks passing.
@@ -237,6 +237,12 @@ def item_with(**changes):
         {"path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"},
         {"path": "HKCU:\\SOFTWARE\\Policies\\Microsoft"},
         {"path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Extra"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\..\\Microsoft\\Windows\\CurrentVersion\\Run"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\*"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\x'; Remove-Item C:\\; '"},
+        {"path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\n"},
+        {"name": "Run'; Start-Process calc; '"},
+        {"name": ""},
         {"type": "QWord"},
         {"value": "1"},
         {"value": -1},
@@ -862,12 +868,15 @@ with:
 ```python
 LABEL_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
 FIX_PATTERN = r"^F\d{2}$"
-# Fixes may only touch policy keys and the two security-option keys under Control.
+# Fixes may only touch policy keys and the two security-option keys under Control. Key and value
+# names use plain characters only, so a path cannot climb out with '..' or match keys with '*'.
+REGISTRY_KEY = r"\\[A-Za-z0-9_-][A-Za-z0-9 _-]*"
 REGISTRY_PATTERN = (
-    r"^HKLM:\\(SOFTWARE\\Policies\\.+"
-    r"|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\.+"
+    rf"^HKLM:\\(SOFTWARE\\Policies({REGISTRY_KEY})+"
+    rf"|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies({REGISTRY_KEY})+"
     r"|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$"
 )
+REGISTRY_NAME_PATTERN = r"^[A-Za-z0-9_]+$"
 AUDIT_GUID_PATTERN = r"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$"
 ```
 
@@ -890,7 +899,7 @@ class RegistryItem(Strict):
 
     kind: Literal["registry"]
     path: str = Field(pattern=REGISTRY_PATTERN)
-    name: str = Field(min_length=1, pattern=NOT_BLANK)
+    name: str = Field(pattern=REGISTRY_NAME_PATTERN)
     type: Literal["DWord", "String"]
     value: int | str
 
@@ -1118,7 +1127,7 @@ def fix_results(
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `251 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `257 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`: `OK: 108 controls, 482 checks, 1 snapshot(s).`
 
@@ -1210,6 +1219,7 @@ DESKTOP-TEST1,System,Process Creation,{0CCE922B-69AE-11D9-BED3-505054503030},No 
 """
 
 CREDENTIAL_VALIDATION = "{0CCE923F-69AE-11D9-BED3-505054503030}"
+RUN_KEY = "Microsoft\\Windows\\CurrentVersion\\Run"
 
 
 def run_file(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -1257,20 +1267,23 @@ $default = @(Get-FixItems -Path '{fixes}')
     assert found == {"all": 57, "default": 54, "lockout": 0, "kinds": kinds}
 
 
-def test_a_fix_outside_the_policy_keys_is_refused(tmp_path):
-    item = {
-        "kind": "registry",
-        "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "name": "Updater",
-        "type": "String",
-        "value": "C:\\Temp\\run.exe",
-    }
+@pytest.mark.parametrize(
+    ("key", "name", "message"),
+    [
+        (f"HKLM:\\SOFTWARE\\{RUN_KEY}", "Updater", "path"),
+        (f"HKLM:\\SOFTWARE\\Policies\\..\\{RUN_KEY}", "Updater", "path"),
+        ("HKLM:\\SOFTWARE\\Policies\\Microsoft\\*", "Updater", "path"),
+        ("HKLM:\\SOFTWARE\\Policies\\Microsoft", "Up'; Start-Process calc; '", "value name"),
+    ],
+)
+def test_a_fix_outside_the_policy_keys_is_refused(tmp_path, key, name, message):
+    item = {"kind": "registry", "path": key, "name": name, "type": "String", "value": "x"}
     fix = {"id": "F01", "title": "t", "why": "w", "effect": "e", "checks": [1], "items": [item]}
     path = tmp_path / "fixes.json"
     path.write_text(json.dumps({"fixes": [fix]}), encoding="utf-8")
     done = powershell(tmp_path, f"Get-FixItems -Path '{path}' | Out-Null")
     assert done.returncode != 0
-    assert "Registry path not allowed" in done.stderr
+    assert f"Registry {message} not allowed" in done.stderr
 
 
 def test_net_accounts_output_is_read(tmp_path):
@@ -1470,8 +1483,11 @@ Create `remediation/Remediation.psm1`:
 
 Set-StrictMode -Version Latest
 
-# Fixes may only touch policy keys and the two security-option keys under Control.
-$AllowedRegistryPath = '^HKLM:\\(SOFTWARE\\Policies\\.+|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\.+|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))$'
+# Fixes may only touch policy keys and the two security-option keys under Control. Key and value
+# names use plain characters only, so a path cannot climb out with '..' or match keys with '*'.
+$RegistryKey = '\\[A-Za-z0-9_-][A-Za-z0-9 _-]*'
+$AllowedRegistryPath = "^HKLM:\\(SOFTWARE\\Policies($RegistryKey)+|SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies($RegistryKey)+|SYSTEM\\CurrentControlSet\\Control\\(Lsa|SAM))\z"
+$AllowedRegistryName = '^[A-Za-z0-9_]+\z'
 $AuditGuidPattern = '^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$'
 $AuditBits = @{ success = 1; failure = 2; both = 3 }
 $AuditNames = @('No auditing', 'Success', 'Failure', 'Success and Failure')
@@ -1504,6 +1520,7 @@ function Assert-ItemAllowed {
     switch ($Item.kind) {
         'registry' {
             if ($Item.path -notmatch $AllowedRegistryPath) { throw "Registry path not allowed: $($Item.path)" }
+            if ($Item.name -notmatch $AllowedRegistryName) { throw "Registry value name not allowed: $($Item.name)" }
         }
         'audit' {
             if ($Item.guid -notmatch $AuditGuidPattern) { throw "Not an audit subcategory GUID: $($Item.guid)" }
@@ -1927,7 +1944,7 @@ Write-Host "Restored $count settings from $Backup. Every value was checked after
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `263 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `272 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - This command, which must print `0 parse errors` for each file:
 
@@ -2250,7 +2267,7 @@ with:
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `268 passed`.
+- `.venv/Scripts/python -m pytest -q -W error`: `277 passed`.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc build --no-pdf`: `26.0% compliant (baseline)`. The single-snapshot report shows "12 reversible fixes are planned".
 
@@ -2554,7 +2571,7 @@ business changes significantly. Changes are recorded and approved by the General
 - [ ] **Step 3: Verify and commit**
 
 Run:
-- `.venv/Scripts/python -m pytest -q -W error`: `270 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
+- `.venv/Scripts/python -m pytest -q -W error`: `279 passed`. This includes `tests/test_policies.py`, which keeps every policy within 400-900 words, and `tests/test_real_data.py` unchanged.
 - `.venv/Scripts/python -m ruff check .`
 - `.venv/Scripts/python -m ecc check`
 
