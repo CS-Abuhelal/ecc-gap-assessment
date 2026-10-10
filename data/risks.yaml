@@ -214,8 +214,9 @@ risks:
   - id: R-21
     controls: [2-12-2, 2-12-3, 2-12-4]
     statement: >-
-      Missing audit settings and only about 10 days of stored logs (ECC asks for 12 months) mean
-      an incident could not be investigated.
+      Only about 12 days of alerts are stored (ECC asks for 12 months), 2 of the 53 CIS logging
+      checks still fail, and the daily alert review has not started, so an incident could not be
+      fully investigated.
     likelihood: 3
     impact: 3
     treatment: mitigate
@@ -274,11 +275,13 @@ risks:
   - id: R-27
     controls: [2-2-3]
     statement: >-
-      Accounts lock only after 10 wrong passwords, for 10 minutes (the Windows default), instead
-      of after 5 for 15 minutes, because WS-01 is used to test Wazuh's failed-logon detections;
-      password guessing against local accounts is slowed less than CIS recommends.
+      Exception to the access control policy: on WS-01 only, accounts lock after 10 wrong
+      passwords for 10 minutes (the Windows default) instead of after 5, because WS-01 is used to
+      test Wazuh's failed-logon detections. The General Manager approved it until 10 April 2027.
+      Compensating controls: 14-character local passwords and Wazuh failed-logon alerts, reviewed
+      daily once the 2-12-2 alert review starts.
     likelihood: 2
     impact: 3
     treatment: accept
-    owner: Cybersecurity Lead
+    owner: IT Manager
     due: 2027-04-10

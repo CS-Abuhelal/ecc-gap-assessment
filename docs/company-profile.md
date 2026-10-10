@@ -29,7 +29,8 @@
 ## Technology
 
 - **Laptops:** one Windows 11 laptop per employee. WS-01 represents them and is the only device
-  with technical evidence in this assessment. It runs Windows 11 Home; the company plans to move
+  with technical evidence in this assessment; it is also used to test Wazuh's detections, such as
+  failed-logon alerts. It runs Windows 11 Home; the company plans to move
   its laptops to Windows 11 Pro or Enterprise. Laptops are not encrypted (Windows 11 Home has no
   full BitLocker). Support staff reach client systems from company laptops, using client-issued
   accounts protected by multi-factor authentication.
@@ -95,3 +96,5 @@ a schedule. Information is not classified or labelled.
 - **SAMA view:** an indicative crosswalk to the SAMA Cyber Security Framework, derived from the
   ECC ratings (`data/sama_mapping.yaml`).
 - **Baseline:** the snapshot of 8 October 2026.
+- **After:** the snapshot of 10 October 2026, taken once the fixes in `remediation/` were
+  applied.

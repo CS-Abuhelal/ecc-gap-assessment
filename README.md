@@ -3,8 +3,8 @@
 A governance, risk and compliance (GRC) project: a gap assessment of a small fictional Saudi IT
 company against the National Cybersecurity Authority's **Essential Cybersecurity Controls
 (ECC-2:2024)**. It uses **real security evidence from my own Windows 11 PC**, collected by a Wazuh
-SIEM, and ends with a **measured before/after**: I fixed what the scan found, safely and reversibly,
-and scanned again.
+SIEM, and ends with a **measured before/after**: I fixed 54 failing checks that were safe to
+change, reversibly, and scanned again.
 
 **Live report:** <https://cs-abuhelal.github.io/ecc-gap-assessment/>. The page also links the PDF
 report and the Excel workbook.
@@ -20,15 +20,20 @@ report and the Excel workbook.
 | Open critical / high vulnerabilities | 0 / 5 | 0 / 5 |
 | Indicative SAMA CSF subdomains at Level 3 | 0 of 28 | 0 of 28 |
 
-- **The fixes worked exactly as intended.** Every one of the 54 targeted checks now passes, and no
-  other check changed.
-- **ECC compliance barely moved, and the report explains why.** ECC rates a control Implemented
-  only when *every* one of its checks passes. Disk encryption (47 checks) cannot be enabled on
-  Windows 11 Home. And most of the remaining gaps are governance: strategy, awareness training,
-  incident response and continuity planning.
+- **Every one of the 54 targeted checks now passes, and no other check changed.**
+- **ECC compliance barely moved, and the report explains why.** Compliance counts controls, not
+  checks.
+  - Wazuh measures 8 of the 102 applicable controls, and the fixes touched 5.
+  - Four of those were already Partially implemented. They stay so until *every* one of their
+    checks passes, which is this assessment's rating rule.
+  - Only 2-7-2 moved, from Not implemented to Partially implemented.
+  - The 47 BitLocker checks cannot pass on Windows 11 Home.
+  - Most of the remaining gaps are governance: strategy, awareness training, incident response
+    and continuity planning.
 - **One fix was left out on purpose.** The account lockout policy (F08) would interrupt the
-  failed-logon tests I run on this PC, so it is recorded as an accepted risk (R-27) with a
-  compensating control, as it would be in a real assessment.
+  failed-logon tests I run on this PC. It is recorded as a time-limited exception to the company's
+  access control policy, approved by the General Manager with compensating controls (R-27), as it
+  would be in a real assessment.
 
 ## What is in it
 
@@ -84,15 +89,17 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt   # .venv/bin/python on Linux or macOS
 .venv/Scripts/python -m pytest                            # tests
 .venv/Scripts/python -m ecc check                         # validate every data file and snapshot
-.venv/Scripts/python -m ecc build --before baseline --after after   # writes build/
+.venv/Scripts/python -m ecc build --before baseline --after after   # writes build/; add --no-pdf without Chrome or Edge
 ```
 
 On a Windows PC with Wazuh:
 - `python -m ecc collect --label <name>` takes a new snapshot. It needs `WAZUH_INDEXER_URL`,
   `WAZUH_INDEXER_USER`, `WAZUH_INDEXER_PASSWORD`, `WAZUH_CA_CERT` and `WAZUH_TLS_SERVER_NAME`.
 - `python -m tools.check_fixes` checks every fix value against the installed Wazuh policy.
-- In an administrator PowerShell, `remediation\apply.ps1 -WhatIf` previews the fixes. Without
-  `-WhatIf` it applies them, and `remediation\undo.ps1 -Backup <file>` reverts them.
+- In an administrator PowerShell,
+  `powershell -ExecutionPolicy Bypass -File .\remediation\apply.ps1 -WhatIf` previews the fixes.
+  - Without `-WhatIf` it applies them; add `-IncludeLockout` for the optional F08.
+  - `.\remediation\undo.ps1 -Backup <file>`, run the same way, reverts them.
 
 ## Repository layout
 

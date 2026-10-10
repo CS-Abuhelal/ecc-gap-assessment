@@ -2,7 +2,7 @@
 # snapshot of 10 October 2026, taken once the fixes in remediation/fixes.json were applied.
 # tests/test_real_data.py checks the quoted figures against the committed snapshots.
 company: Rimal Byte (fictional)
-# F08 (account lockout) was left out on purpose; the risk is accepted as R-27.
+# F08 (account lockout) was left out on purpose: an approved policy exception, R-27.
 optional_fixes_applied: []
 executive_summary:
   - >-
@@ -21,8 +21,11 @@ executive_summary:
     log sizes, firewall logging, diagnostic data, password rules, User Account Control, AutoPlay,
     name resolution and Remote Assistance. Passing CIS benchmark checks rose from 122 to 176 of
     473, every targeted check now passes, and no other check changed. Compliance moved only from
-    26.0% to 26.5%: ECC rates a control Implemented only when every one of its checks passes, and
-    disk encryption (47 checks) cannot be enabled on Windows 11 Home.
+    26.0% to 26.5% because it counts controls, not checks: Wazuh measures 8 of the 102 applicable
+    controls and the fixes touched 5. Four of them were already Partially implemented and stay so
+    until every one of their checks passes (this assessment's rating rule); only 2-7-2 rose, from
+    Not implemented to Partially implemented, which is half a control. The 47 BitLocker checks
+    (2-8-3) cannot pass on Windows 11 Home, which has no full BitLocker.
   - >-
     The 27 risks in the register are led by insecure software delivery, phishing without awareness
     training and weak workstation hardening. The roadmap starts with email authentication and the
@@ -32,24 +35,28 @@ key_findings:
     Six policies are approved, but there is no cybersecurity strategy and the only cybersecurity
     role is part-time (1-1, 1-2).
   - >-
-    After the fixes, 176 of 473 applicable CIS checks pass on WS-01, up from 122. Every
-    technically measured control is still a gap; encryption scores 0 of 47 because Windows 11 Home
-    has no full BitLocker (2-3, 2-8).
+    After the fixes, 176 of 473 applicable CIS checks pass on WS-01, up from 122, but every
+    technically measured control is still a gap. Encryption scores 0 of 47 because Windows 11 Home
+    has no full BitLocker (2-8-3).
   - >-
-    Windows now records much more: 51 of 53 logging checks pass, up from 16. Security logs still go
-    back only about two weeks, and ECC asks for 12 months (2-12-3, 2.12.3.5).
+    Windows now records much more: 51 of 53 logging checks pass, up from 16. Stored alerts still
+    go back only about 12 days, and ECC asks for 12 months (2-12-3, 2.12.3.5).
   - >-
-    No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3). All five are in
-    Steam's client and match a version number its installer never updates, so they are probably
-    false positives; they stay counted until the running version is confirmed.
+    No critical vulnerabilities are open, but 5 high-severity ones are (2-10-3). Wazuh's dashboard
+    shows all five in Steam's client, version 2.10.91.91, a number its installer does not update,
+    so they are probably false positives. Under the vulnerability management policy the IT Manager
+    must confirm the running version, or update or remove Steam, within 30 days of the first
+    report. A game client on a company laptop also shows why an acceptable use policy is needed
+    (2-1-3).
   - >-
     There is no awareness program, incident response plan, penetration testing or business
     continuity plan (1-10, 2-11, 2-13, 3-1).
   - >-
     The account lockout fix (F08) was left out on purpose: WS-01 is used to test Wazuh's
-    failed-logon detections, and a 5-attempt lockout would stop those tests. The Cybersecurity
-    Lead accepted the risk (R-27), with Wazuh alerts on repeated failed logons as the compensating
-    control.
+    failed-logon detections, and a 5-attempt lockout would stop those tests. The General Manager
+    approved a six-month exception to the access control policy for WS-01 only (R-27). Its
+    compensating controls are 14-character local passwords and Wazuh's failed-logon alerts, which
+    count fully only once the daily alert review starts.
   - >-
     Mapped onto SAMA's Cyber Security Framework, none of the 28 applicable subdomains reaches
     maturity Level 3, the minimum SAMA expects of the organisations it regulates (indicative
@@ -77,9 +84,10 @@ limitations:
     own level criteria, so they are a rough guide: a derived Level 3 would be an upper bound, and
     a Level 0 can miss informal practice.
   - >-
-    The CIS checks read each setting from the registry. Firewall logging and the larger event
-    logs were also confirmed in effect after a restart; the other settings were not observed in
-    use.
+    Most CIS checks read the configured value from the registry; the audit and password checks
+    query auditpol and secedit, which report the policy in effect. After a restart the assessor
+    also checked by hand that firewall logging and the larger Security log were in effect; that
+    check is not in the snapshots, and the other registry settings were not checked in use.
   - >-
     Results describe two points in time: the baseline snapshot of 8 October 2026 and the after
     snapshot of 10 October 2026.

@@ -4,7 +4,7 @@ from pathlib import Path
 from ecc.assess import assess, check_progress, compliance, domain_scores
 from ecc.load import load_dataset, load_snapshots
 from ecc.models import Status
-from ecc.remediation import fix_results
+from ecc.remediation import fix_results, other_changes
 from ecc.sama import level_counts, sama_view
 from ecc.validate import validate
 
@@ -81,14 +81,31 @@ def test_the_narrative_quotes_the_computed_figures():
     progress = {p.control.id: p for p in check_progress(before, after)}
     logging, encryption = progress["2-12-3"], progress["2-8-3"]
     applicable = sum(1 for r in after.results if r.status is not Status.NOT_APPLICABLE)
+    rows = fix_results(dataset, later, before.snapshot)
+    measured = sum(1 for r in after.results if r.checks or r.facts)
+    touched = {control for row in rows if row.applied for control in row.controls}
+    days = (later.taken_at - later.logging.oldest_alert).days
+    failing_logs = logging.after[1] - logging.after[0]
+    risks = " ".join(" ".join(risk.statement.split()) for risk in dataset.risks.risks)
+    assert all(row.after == len(row.fix.checks) for row in rows if row.applied)
+    assert other_changes(dataset, before.snapshot, later) == ()
+    for figure in (
+        f"about {days} days of alerts are stored",
+        f"{failing_logs} of the {logging.after[1]} CIS logging checks still fail",
+    ):
+        assert figure in risks, figure
     figures = [
+        f"Wazuh measures {measured} of the {applicable} applicable controls",
+        f"the fixes touched {len(touched)}",
+        f"The {encryption.after[1]} BitLocker checks",
+        f"go back only about {days} days",
         f"{applicable} apply",
         f"met {compliance(before.results)}% of them",
         f"from {passed(before.snapshot)} to {passed(later)} of {usable}",
         f"from {compliance(before.results)}% to {compliance(after.results)}%",
         f"{passed(later)} of {usable} applicable CIS checks pass on WS-01, up from "
         f"{passed(before.snapshot)}",
-        f"encryption scores {encryption.after[0]} of {encryption.after[1]}",
+        f"Encryption scores {encryption.after[0]} of {encryption.after[1]}",
         f"{logging.after[0]} of {logging.after[1]} logging checks pass, up from "
         f"{logging.before[0]}",
         f"{later.vulnerabilities.high} high-severity ones are",
