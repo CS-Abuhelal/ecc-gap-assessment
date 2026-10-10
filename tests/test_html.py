@@ -168,15 +168,17 @@ def test_the_report_shows_remediation_results(dataset, baseline, after):
     assert "<h2>Remediation on WS-01</h2>" in html
     assert "were applied with remediation/apply.ps1" in html
     assert "<b>2 of 2 targeted checks pass</b> (was 0)." in html
+    assert "snapshots. Each row counts" in html
+    assert "No CIS check outside the fixes changed" in html
     assert "<td>2-12-3</td><td class=\"nowrap\">0 &rarr; 1 of 1</td>" in html
     assert "Audit sign-ins</b> (optional)" in html
     assert "<h3>CIS checks passing, by control</h3>" in html
     assert "<td>2-2-3 Identity and Access Management</td><td>1 of 2</td><td>2 of 2</td>" in html
 
 
-def test_a_single_snapshot_report_shows_the_planned_fixes(dataset, baseline):
+def test_a_single_snapshot_report_lists_the_fixes(dataset, baseline):
     html = render_html(dataset, assess(dataset, baseline))
-    assert "2 reversible fixes are planned in remediation/fixes.json" in html
+    assert "2 reversible fixes are listed in remediation/fixes.json" in html
     assert "<b>0 of 2 targeted checks pass</b>." in html
     assert "CIS checks passing, by control" not in html
 
@@ -188,3 +190,24 @@ def test_the_title_and_scope_name_the_company_safely(dataset, baseline):
     assert "<title>&lt;b&gt;Co&lt;/b&gt; &middot; NCA ECC Gap Assessment</title>" in html
     assert "The assessment covers &lt;b&gt;Co&lt;/b&gt; as a whole." in html
     assert "taken 12 October 2026" in html
+
+
+def test_an_optional_fix_left_out_is_marked_and_not_counted(dataset, baseline, after):
+    report = dataset.report.model_copy(update={"optional_fixes_applied": ()})
+    changed = dataclasses.replace(dataset, report=report)
+    html = render_html(changed, assess(changed, after), assess(changed, baseline))
+    assert "except the optional F02, which was left out" in html
+    assert "<b>1 of 1 targeted checks pass</b> (was 0)." in html
+    assert '<td>2-12-3</td><td class="nowrap">Not applied</td>' in html
+
+
+def test_checks_changed_outside_the_fixes_are_listed(dataset, baseline, after):
+    results = tuple(
+        check.model_copy(update={"result": "failed"}) if check.id == 26001 else check
+        for check in after.checks
+    )
+    later = after.model_copy(update={"checks": results})
+    html = render_html(dataset, assess(dataset, later), assess(dataset, baseline))
+    assert "No fix targets these checks" in html
+    assert "<td>26001</td><td>1.1.2</td>" in html
+    assert "<td>passed</td><td>failed</td>" in html

@@ -54,7 +54,7 @@ def test_the_sama_finding_matches_the_view():
 
 
 def test_the_planned_fixes():
-    dataset, snapshots, assessment = baseline_assessment()
+    dataset, _, assessment = baseline_assessment()
     rows = fix_results(dataset, assessment.snapshot)
     assert len(rows) == 12
     assert sum(len(row.fix.checks) for row in rows) == 57

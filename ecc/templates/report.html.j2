@@ -138,7 +138,20 @@ a { color: var(--link); }
 <tr><td>{{ p.control.id }} {{ p.control.subdomain_title }}</td><td>{{ p.before[0] }} of {{ p.before[1] }}</td><td>{{ p.after[0] }} of {{ p.after[1] }}</td></tr>
 {% endfor %}
 </tbody></table></div>
-<p class="note">A control is Implemented only when every one of its checks passes, so it can gain many passing checks and keep its rating.</p>
+<p class="note">A control is Implemented only when every one of its checks passes, so it can gain many passing checks and keep its rating. Checks that were not applicable or not scanned are left out of these counts.</p>
+{% endif %}
+<h3>CIS checks that changed outside the fixes</h3>
+{% if other_changes %}
+<p class="note">No fix targets these checks, so other changes on the PC, such as Windows updates, moved them.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Check</th><th>CIS</th><th>Title</th><th>{{ before_snapshot.label }}</th><th>{{ snapshot.label }}</th></tr></thead>
+<tbody>
+{% for c in other_changes %}
+<tr><td>{{ c.check.id }}</td><td>{{ c.check.cis }}</td><td>{{ c.check.title }}</td><td>{{ c.before }}</td><td>{{ c.after }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+<p class="note">No CIS check outside the fixes changed, so the fixes account for every change in the checks.</p>
 {% endif %}
 {% endif %}
 
@@ -194,16 +207,19 @@ a { color: var(--link); }
 {% if fixes %}
 <h2>Remediation on {{ snapshot.host }}</h2>
 {% if before_snapshot %}
-<p class="note">The fixes in remediation/fixes.json were applied with remediation/apply.ps1 between the &ldquo;{{ before_snapshot.label }}&rdquo; and &ldquo;{{ snapshot.label }}&rdquo; snapshots (an optional fix only when chosen). Each row counts the fix's own CIS checks that pass.</p>
+{% set left_out = fixes|rejectattr("applied")|map(attribute="fix.id")|list %}
+{% set counted = fixes|selectattr("applied")|list %}
+<p class="note">The fixes in remediation/fixes.json were applied with remediation/apply.ps1 between the &ldquo;{{ before_snapshot.label }}&rdquo; and &ldquo;{{ snapshot.label }}&rdquo; snapshots{% if left_out %}, except the optional {{ left_out|join(", ") }}, which {{ "was" if left_out|length == 1 else "were" }} left out{% endif %}. Each row counts the fix's own CIS checks that pass, out of all the checks it targets.</p>
 {% else %}
-<p class="note">{{ fixes|length }} reversible fixes are planned in remediation/fixes.json. remediation/apply.ps1 applies them after saving the old values, and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass now.</p>
+{% set counted = fixes %}
+<p class="note">{{ fixes|length }} reversible fixes are listed in remediation/fixes.json. remediation/apply.ps1 applies them after saving the old values, and remediation/undo.ps1 restores them. Each row counts the fix's own CIS checks that pass in this snapshot, out of all the checks it targets.</p>
 {% endif %}
-<p><b>{{ fixes|sum(attribute="after") }} of {{ fixes|map(attribute="fix.checks")|map("length")|sum }} targeted checks pass</b>{% if before_snapshot %} (was {{ fixes|sum(attribute="before") }}){% endif %}.</p>
+<p><b>{{ counted|sum(attribute="after") }} of {{ counted|map(attribute="fix.checks")|map("length")|sum }} targeted checks pass</b>{% if before_snapshot %} (was {{ counted|sum(attribute="before") }}){% endif %}.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Fix</th><th>Change</th><th>ECC controls</th><th>Checks passing</th></tr></thead>
 <tbody>
 {% for row in fixes %}
-<tr><td>{{ row.fix.id }}</td><td><b>{{ row.fix.title }}</b>{% if row.fix.optional %} (optional){% endif %}<br>{{ row.fix.why }}</td><td>{{ row.controls|join(", ") }}</td><td class="nowrap">{% if row.before is not none %}{{ row.before }} &rarr; {% endif %}{{ row.after }} of {{ row.fix.checks|length }}</td></tr>
+<tr><td>{{ row.fix.id }}</td><td><b>{{ row.fix.title }}</b>{% if row.fix.optional %} (optional){% endif %}<br>{{ row.fix.why }}</td><td>{{ row.controls|join(", ") }}</td><td class="nowrap">{% if row.applied is false %}Not applied{% else %}{% if row.before is not none %}{{ row.before }} &rarr; {% endif %}{{ row.after }} of {{ row.fix.checks|length }}{% endif %}</td></tr>
 {% endfor %}
 </tbody></table></div>
 {% endif %}
@@ -242,7 +258,7 @@ a { color: var(--link); }
 <h2 class="page-break">Method</h2>
 <ul>
   <li>Framework: NCA Essential Cybersecurity Controls (ECC-2:2024), {{ results|length }} main controls.</li>
-  <li>Controls without technical evidence are rated from documents and stated practices: a requirement documented and approved is Implemented, one being carried out is Partially implemented, a review with a set cycle that has not yet run is Partially implemented, and a requirement that is neither documented nor carried out is Not implemented.</li>
+  <li>Controls without technical evidence are rated from documents and stated practices: a requirement documented and approved is Implemented, one being carried out is Partially implemented, a review with a set cycle that has not yet run is Partially implemented, and a requirement that is neither approved nor carried out is Not implemented.</li>
   <li>Technical evidence: {{ check_count }} checks from the {{ policy_name }}, collected by Wazuh Security Configuration Assessment, plus open vulnerability counts and log retention.</li>
   <li>Checks rate a control Implemented when all usable checks pass, Partially implemented when some pass and Not implemented when none pass. Checks that are not applicable or were not scanned are left out.</li>
   <li>When a control has both technical and documentary evidence, it gets the weaker rating.</li>

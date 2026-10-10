@@ -38,7 +38,7 @@ risks:
     statement: >-
       The first reviews of the policies, the roles and the risk method are not due until
       October 2027, so a change in the business before then could leave a document out of date
-      for a few months.
+      until the first review.
     likelihood: 2
     impact: 2
     treatment: accept

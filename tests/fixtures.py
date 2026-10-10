@@ -182,6 +182,7 @@ REPORT = {
     "executive_summary": ["Example Co is a made-up company used by the tests."],
     "key_findings": ["Password rules need work."],
     "limitations": ["All data here is made up."],
+    "optional_fixes_applied": ["F02"],
 }
 
 SAMA_CSF = {

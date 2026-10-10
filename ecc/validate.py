@@ -100,6 +100,12 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
     report("fixes.json: fix ids used twice", duplicates(fix.id for fix in fixes))
     report("fixes.json: unknown CIS checks", [str(c) for c in sorted(set(fixed) - check_ids)])
     report("fixes.json: checks listed in two fixes", duplicates(str(c) for c in fixed))
+    chosen = dataset.report.optional_fixes_applied
+    optional = {fix.id for fix in fixes if fix.optional}
+    report(
+        "report.yaml: optional_fixes_applied names fixes that are not optional",
+        sorted(set(chosen) - optional),
+    )
     if snapshots:
         first = snapshots[0]
         failed = {check.id for check in first.checks if check.result == "failed"}
@@ -107,6 +113,21 @@ def validate(dataset: Dataset, snapshots: Sequence[Snapshot]) -> list[str]:
             f"fixes.json: checks that were not failing in snapshot '{first.label}'",
             [str(c) for c in sorted((set(fixed) & check_ids) - failed)],
         )
+        skipped = [fix for fix in fixes if fix.optional and fix.id not in chosen]
+        for snapshot in snapshots[1:]:
+            results = {check.id: check.result for check in snapshot.checks}
+            report(
+                f"report.yaml: optional fixes passing in snapshot '{snapshot.label}' "
+                "but missing from optional_fixes_applied",
+                sorted(
+                    {
+                        fix.id
+                        for fix in skipped
+                        for check in fix.checks
+                        if check in failed and results.get(check) == "passed"
+                    }
+                ),
+            )
 
     report("snapshots: labels used twice", duplicates(s.label for s in snapshots))
     report(

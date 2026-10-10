@@ -6,15 +6,25 @@ from dataclasses import dataclass
 
 from ecc.load import Dataset
 from ecc.mapping import controls_for
-from ecc.models import Fix, Snapshot
+from ecc.models import CisCheck, Fix, Snapshot
 
 
 @dataclass(frozen=True)
 class FixResult:
+    """A fix with its ECC controls and passing checks. `applied` is None without a before."""
+
     fix: Fix
     controls: tuple[str, ...]
     before: int | None
     after: int
+    applied: bool | None
+
+
+@dataclass(frozen=True)
+class CheckChange:
+    check: CisCheck
+    before: str
+    after: str
 
 
 def control_key(control_id: str) -> tuple[int, ...]:
@@ -32,6 +42,7 @@ def fix_results(
 ) -> tuple[FixResult, ...]:
     """Each fix with the ECC controls its checks map to and how many of its checks pass."""
     by_id = {check.id: check for check in dataset.policy.checks}
+    chosen = set(dataset.report.optional_fixes_applied)
     rows: list[FixResult] = []
     for fix in dataset.fixes.fixes:
         controls = {
@@ -46,6 +57,22 @@ def fix_results(
                 controls=tuple(sorted(controls, key=control_key)),
                 before=passing(before, fix.checks) if before is not None else None,
                 after=passing(after, fix.checks),
+                applied=None if before is None else not fix.optional or fix.id in chosen,
             )
         )
     return tuple(rows)
+
+
+def other_changes(dataset: Dataset, before: Snapshot, after: Snapshot) -> tuple[CheckChange, ...]:
+    """CIS checks that no fix targets but whose result changed between the two snapshots."""
+    targeted = {check for fix in dataset.fixes.fixes for check in fix.checks}
+    old = {check.id: check.result for check in before.checks}
+    new = {check.id: check.result for check in after.checks}
+    return tuple(
+        CheckChange(check, old[check.id], new[check.id])
+        for check in dataset.policy.checks
+        if check.id not in targeted
+        and check.id in old
+        and check.id in new
+        and old[check.id] != new[check.id]
+    )

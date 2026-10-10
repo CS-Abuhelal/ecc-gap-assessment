@@ -15,6 +15,7 @@ from tests.fixtures import (
     EVIDENCE,
     FIXES,
     MAPPING,
+    REPORT,
     RISKS,
     SAMA_MAPPING,
     rewrite,
@@ -317,3 +318,14 @@ def test_fixes_must_target_checks_that_failed_first(root):
     write_fixes(root, {"fixes": [first, {**second, "checks": [26001, 26139, 26140]}]})
     expected = "fixes.json: checks that were not failing in snapshot 'baseline' (2): 26001, 26140"
     assert expected in problems(root)
+
+
+def test_optional_fixes_must_be_listed_when_applied(root):
+    rewrite(root, "report.yaml", {**REPORT, "optional_fixes_applied": ["F01"]})
+    found = problems(root)
+    assert "report.yaml: optional_fixes_applied names fixes that are not optional (1): F01" in found
+    expected = (
+        "report.yaml: optional fixes passing in snapshot 'after' "
+        "but missing from optional_fixes_applied (1): F02"
+    )
+    assert expected in found

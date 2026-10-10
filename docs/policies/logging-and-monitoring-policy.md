@@ -7,7 +7,7 @@
 | Approved by | General Manager (Authorized Official) |
 | Approved on | 5 October 2026 |
 | Next review | October 2027 |
-| ECC-2:2024 controls | 2-12-1, 2-12-2, 2-12-3, 2-12-4 |
+| ECC-2:2024 controls | 1-3-4, 2-12-1, 2-12-2, 2-12-3, 2-12-4 |
 
 > Rimal Byte is a fictional company. This policy was written for a portfolio GRC project.
 

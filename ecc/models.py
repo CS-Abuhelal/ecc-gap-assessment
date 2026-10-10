@@ -194,6 +194,8 @@ class ReportText(Strict):
     executive_summary: tuple[Paragraph, ...] = Field(min_length=1)
     key_findings: tuple[Paragraph, ...] = ()
     limitations: tuple[Paragraph, ...] = ()
+    # Optional fixes in remediation/fixes.json that were applied; the rest count as not applied.
+    optional_fixes_applied: tuple[Annotated[str, Field(pattern=FIX_PATTERN)], ...] = ()
 
 
 SamaId = Annotated[str, Field(pattern=r"^3\.[1-4]\.\d{1,2}$")]

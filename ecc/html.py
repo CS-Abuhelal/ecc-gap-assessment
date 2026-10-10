@@ -13,7 +13,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from ecc.assess import Assessment, check_progress, compare, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.models import Status, long_date
-from ecc.remediation import fix_results
+from ecc.remediation import fix_results, other_changes
 from ecc.risk import BUCKET_ORDER, rating, risk_rows, roadmap
 from ecc.sama import level_counts, sama_view
 
@@ -82,6 +82,9 @@ def report_context(
         "progress": check_progress(before, after) if before is not None else (),
         "fixes": fix_results(
             dataset, after.snapshot, before.snapshot if before is not None else None
+        ),
+        "other_changes": (
+            other_changes(dataset, before.snapshot, after.snapshot) if before is not None else ()
         ),
         "risks": rows,
         "open_risks": open_rows,

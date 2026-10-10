@@ -131,10 +131,10 @@ def test_the_sama_sheet(tmp_path, dataset, baseline):
 
 def test_the_remediation_sheet_compares_two_snapshots(tmp_path, dataset, baseline, after):
     sheet = workbook(tmp_path, dataset, after, baseline)["Remediation"]
-    header = ["CIS checks", "ECC controls", "baseline passing", "after passing"]
+    header = ["CIS checks", "Checks", "ECC controls", "baseline passing", "after passing"]
     assert values(sheet, 1)[5:] == header
     assert values(sheet, 2)[0] == "F01"
-    assert values(sheet, 3)[4:] == ["Yes", "26139", "2-12-3", 0, 1]
+    assert values(sheet, 3)[4:] == ["Yes, applied", "26139", 1, "2-12-3", 0, 1]
 
 
 def test_the_remediation_sheet_for_one_snapshot(tmp_path, dataset, baseline):

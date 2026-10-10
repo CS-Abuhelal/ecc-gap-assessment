@@ -15,7 +15,7 @@ from ecc.assess import Assessment, compliance, domain_scores
 from ecc.load import Dataset
 from ecc.mapping import controls_for
 from ecc.models import Status, long_date
-from ecc.remediation import fix_results
+from ecc.remediation import FixResult, fix_results
 from ecc.risk import risk_rows, roadmap
 from ecc.sama import sama_view
 
@@ -255,11 +255,19 @@ def write_sama(sheet: Worksheet, dataset: Dataset, after: Assessment) -> None:
                 sheet.cell(row=row_number, column=6).number_format = "0.0"
 
 
+def optional_label(row: FixResult) -> str:
+    if not row.fix.optional:
+        return "No"
+    if row.applied is None:
+        return "Yes"
+    return "Yes, applied" if row.applied else "Yes, not applied"
+
+
 def write_remediation(
     sheet: Worksheet, dataset: Dataset, after: Assessment, before: Assessment | None
 ) -> None:
     rows = fix_results(dataset, after.snapshot, before.snapshot if before is not None else None)
-    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks"]
+    header = ["Fix", "Change", "Why", "What changes on the PC", "Optional", "CIS checks", "Checks"]
     header.append("ECC controls")
     if before is not None:
         header.append(f"{before.snapshot.label} passing")
@@ -273,15 +281,16 @@ def write_remediation(
                 row.fix.title,
                 row.fix.why,
                 row.fix.effect,
-                "Yes" if row.fix.optional else "No",
+                optional_label(row),
                 ", ".join(str(check) for check in row.fix.checks),
+                len(row.fix.checks),
                 ", ".join(row.controls),
                 *([row.before] if before is not None else []),
                 row.after,
             ]
             for row in rows
         ],
-        [6, 36, 48, 48, 9, 30, 18, 12, 12],
+        [6, 36, 48, 48, 16, 30, 8, 18, 12, 12],
         autofilter=True,
     )
 
